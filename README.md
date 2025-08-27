@@ -41,7 +41,7 @@ Step 3 - Create Bucket in MinIO
 
 Step 4 - Into the runnung trino container
 ```bash
-docker container exec -it docker-compose_trino-coordinator_1 trino
+docker container exec -it docker-compose-trino-coordinator-1 trino
 ```
 Step 5 -  Create schema and table and play around with trino, you can see the trino dashboard from localhost:8080.
 ```sql
@@ -54,6 +54,30 @@ WITH (
     external_location = 's3a://test/customer/'
 ) 
 AS SELECT * FROM tpch.tiny.customer;
+```
+
+
+```
+
+SHOW CATALOGS;
+
+CREATE SCHEMA minio.test
+WITH (location = 's3a://test/');
+
+SHOW SCHEMAS IN minio;
+
+SHOW TABLES in minio.test;
+
+CREATE TABLE IF NOT EXISTS minio.test.gol_darah (
+  kd_gol_darah bigint,
+  nm_gol_darah varchar(2)
+)
+WITH (
+  external_location = 's3a://test/gol_darah/',
+  format = 'PARQUET'
+);
+
+select * from minio.test.gol_darah;
 ```
 
 			
