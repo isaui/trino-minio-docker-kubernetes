@@ -12,6 +12,14 @@ def generate_metastore_config():
     minio_warehouse_bucket = os.getenv('MINIO_WAREHOUSE_BUCKET', 'warehouse')
     minio_ssl_enabled = os.getenv('MINIO_SSL_ENABLED', 'false')
     
+    # PostgreSQL configuration
+    postgres_host = os.getenv('POSTGRES_HOST')
+    postgres_port = os.getenv('POSTGRES_PORT')
+    postgres_db = os.getenv('POSTGRES_DB')
+    postgres_user = os.getenv('POSTGRES_USER')
+    postgres_password = os.getenv('POSTGRES_PASSWORD')
+    metastore_port = os.getenv('METASTORE_PORT', '9083')
+    
     # Validate required variables
     if not minio_endpoint:
         print("ERROR: MINIO_ENDPOINT environment variable is required")
@@ -22,17 +30,32 @@ def generate_metastore_config():
     if not minio_secret_key:
         print("ERROR: MINIO_SECRET_KEY environment variable is required")
         sys.exit(1)
+    if not postgres_host:
+        print("ERROR: POSTGRES_HOST environment variable is required")
+        sys.exit(1)
+    if not postgres_port:
+        print("ERROR: POSTGRES_PORT environment variable is required")
+        sys.exit(1)
+    if not postgres_db:
+        print("ERROR: POSTGRES_DB environment variable is required")
+        sys.exit(1)
+    if not postgres_user:
+        print("ERROR: POSTGRES_USER environment variable is required")
+        sys.exit(1)
+    if not postgres_password:
+        print("ERROR: POSTGRES_PASSWORD environment variable is required")
+        sys.exit(1)
     
     # Generate XML configuration
     config_xml = f"""<configuration>
     <!-- CRITICAL: Forces remote metastore mode, prevents Derby fallback -->
     <property>
         <name>hive.metastore.uris</name>
-        <value>thrift://hive-metastore:9083</value>
+        <value>thrift://hive-metastore:{metastore_port}</value>
     </property>
     <property>
         <name>metastore.thrift.uris</name>
-        <value>thrift://hive-metastore:9083</value>
+        <value>thrift://hive-metastore:{metastore_port}</value>
     </property>
     <property>
         <name>hive.metastore.local</name>
@@ -44,15 +67,15 @@ def generate_metastore_config():
     </property>
     <property>
         <name>javax.jdo.option.ConnectionURL</name>
-        <value>jdbc:postgresql://postgres:5432/hive_db</value>
+        <value>jdbc:postgresql://{postgres_host}:{postgres_port}/{postgres_db}</value>
     </property>
     <property>
         <name>javax.jdo.option.ConnectionUserName</name>
-        <value>admin</value>
+        <value>{postgres_user}</value>
     </property>
     <property>
         <name>javax.jdo.option.ConnectionPassword</name>
-        <value>admin</value>
+        <value>{postgres_password}</value>
     </property>
 
     <!-- PostgreSQL connection -->
