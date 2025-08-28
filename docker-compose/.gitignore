@@ -1,0 +1,38 @@
+# Environment files (contain secrets/sensitive data)
+.env
+
+# Output and generated files
+output/
+logs/
+data/
+
+# Docker volumes and data
+volumes/
+docker-vol/
+*-data/
+*-logs/
+
+# Temporary files
+*.tmp
+*.log
+*.pid
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup

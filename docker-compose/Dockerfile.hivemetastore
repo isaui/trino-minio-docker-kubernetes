@@ -2,14 +2,19 @@ FROM openjdk:8-jre-slim-bullseye
 
 WORKDIR /opt
 
+# Environment variables - these rarely change
 ENV HADOOP_VERSION=3.2.0
 ENV METASTORE_VERSION=3.0.0
-
-RUN apt-get update && apt-get install -y netcat curl
-
 ENV HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
 ENV HIVE_HOME=/opt/apache-hive-metastore-${METASTORE_VERSION}-bin
 
+# Hardcode config path for Hive Metastore
+ENV METASTORE_CONFIG_PATH=/opt/apache-hive-metastore-3.0.0-bin/conf/metastore-site.xml
+
+# Install system packages - cache this layer
+RUN apt-get update && apt-get install -y netcat curl python3 python3-pip
+
+# Download and extract all dependencies - HEAVY LAYER, cache this!
 RUN curl -L https://downloads.apache.org/hive/hive-standalone-metastore-${METASTORE_VERSION}/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz | tar zxf - && \
     curl -L https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz | tar zxf - && \
     curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.19.tar.gz | tar zxf - && \
@@ -22,16 +27,25 @@ RUN curl -L https://downloads.apache.org/hive/hive-standalone-metastore-${METAST
     rm -rf postgresql-42.4.0.jar && \
     rm -rf hive-exec-${METASTORE_VERSION}.jar
 
-COPY scripts/entrypoint.sh /entrypoint.sh
-# COPY ./hive-exec-3.0.0.jar ${HIVE_HOME}/lib/
-
-
+# Create users and directories - stable layer
 RUN groupadd -r hive --gid=1000 && \
     useradd -r -g hive --uid=1000 -d ${HIVE_HOME} hive && \
     chown hive:hive -R ${HIVE_HOME} && \
-    chown hive:hive /entrypoint.sh && chmod +x /entrypoint.sh
+    mkdir -p /opt/hive-data && \
+    chown hive:hive -R /opt/hive-data && \
+    mkdir -p /var/log/hive && \
+    chown hive:hive -R /var/log/hive && \
+    mkdir -p /opt/scripts
+
+# Copy scripts - put this LAST so changes don't invalidate above layers
+COPY scripts/metastore-entrypoint.sh /entrypoint.sh
+COPY scripts/generate_metastore_config.py /opt/scripts/generate_metastore_config.py
+
+# Set permissions - final layer
+RUN chmod +x /entrypoint.sh && chown hive:hive /entrypoint.sh && \
+    chmod +x /opt/scripts/generate_metastore_config.py && chown hive:hive -R /opt/scripts
 
 USER hive
 EXPOSE 9083
 
-ENTRYPOINT ["sh", "-c", "/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

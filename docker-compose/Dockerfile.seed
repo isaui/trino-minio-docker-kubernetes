@@ -1,0 +1,30 @@
+FROM python:3.11-alpine
+
+# Install build dependencies for Alpine
+RUN apk add --no-cache gcc musl-dev libffi-dev
+
+# Install dependencies
+RUN pip install s3fs pyarrow python-dotenv trino bcrypt
+
+# Create working directory
+WORKDIR /app
+
+# Copy the generate script
+COPY scripts/generate_trino_views.py /app/generate_trino_views.py
+
+# Copy the execute DDL script
+COPY scripts/execute_ddl.py /app/execute_ddl.py
+
+# Copy the password generator script
+COPY scripts/generate_password_db.py /app/generate_password_db.py
+
+
+# Create output directory
+RUN mkdir -p /output
+
+# Create custom entrypoint script
+COPY scripts/seed-entrypoint.sh /app/seed-entrypoint.sh
+RUN chmod +x /app/seed-entrypoint.sh
+
+# Set entrypoint
+ENTRYPOINT ["/app/seed-entrypoint.sh"]
