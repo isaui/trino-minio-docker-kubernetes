@@ -1,0 +1,13 @@
+docker-vol/
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.lock
+*.pid
+*.swp
+
+# Ignore build directories
+dist
+build
+out
