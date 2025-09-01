@@ -5,16 +5,11 @@ services:
     image: traefik:v3.3
     command:
       - --api.insecure=true
-      - --log.level=DEBUG
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --accesslog=true
       - --entryPoints.web.address=:80
       - --entryPoints.websecure.address=:443
-      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
-      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
-      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
     ports:
       - "80:80"
       - "443:443"
@@ -68,17 +63,10 @@ services:
       start_period: 60s
     labels:
       - "traefik.enable=true"
-      # HTTP router (redirect to HTTPS)
-      - "traefik.http.routers.trino-http.rule=Host(`${TRINO_DOMAIN}`)"
-      - "traefik.http.routers.trino-http.entrypoints=web"
-      - "traefik.http.routers.trino-http.middlewares=trino-redirect"
-      - "traefik.http.middlewares.trino-redirect.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.trino-redirect.redirectscheme.permanent=true"
       # HTTPS router with Let's Encrypt
       - "traefik.http.routers.trino.rule=Host(`${TRINO_DOMAIN}`)"
       - "traefik.http.routers.trino.entrypoints=websecure"
       - "traefik.http.routers.trino.tls=true"
-      - "traefik.http.routers.trino.tls.certresolver=letsencrypt"
       - "traefik.http.routers.trino.middlewares=trino-headers"
       # Complete middleware headers for Trino authentication
       - "traefik.http.middlewares.trino-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
@@ -138,16 +126,6 @@ services:
         condition: service_healthy
     networks:
       - trino-network
-  whoami:
-    image: "traefik/whoami"
-    container_name: "whoami"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`whoami.localhost`)"
-      - "traefik.http.routers.whoami.entrypoints=web"
-    networks:
-      - trino-network
-
 networks:
   trino-network:
     driver: bridge

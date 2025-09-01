@@ -9,7 +9,6 @@ import os
 import logging
 import time
 from trino.dbapi import connect
-from trino.auth import BasicAuthentication
 
 def wait_for_trino(host, port, max_attempts=30):
     """Wait for Trino to be ready"""
