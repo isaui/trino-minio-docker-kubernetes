@@ -1,0 +1,129 @@
+services:
+  traefik:
+    container_name: traefik
+    image: traefik:v3.3
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --accesslog=true
+      - --entryPoints.web.address=:80
+      - --entryPoints.websecure.address=:443
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8081:8080"  # Traefik dashboard
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore:
+        condition: service_started
+      trino-coordinator:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-vol/letsencrypt:/letsencrypt
+    networks:
+      - trino-network
+  trino-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.init
+    env_file:
+      - .env
+    volumes:
+      - ./docker-vol/trino-config:/etc/trino/dynamic
+      - ./docker-vol/catalog:/etc/trino/catalog
+    networks:
+      - trino-network
+
+  trino-coordinator:
+    image: 'trinodb/trino:latest'
+    hostname: trino-coordinator
+    ports:
+      - '8085:8080'
+    env_file:
+      - .env
+    volumes:
+      - ./etc:/etc/trino
+      - ./docker-vol/output:/opt/ddl
+      - ./docker-vol/trino-config:/etc/trino/dynamic
+      - ./docker-vol/catalog:/etc/trino/catalog
+      - ./docker-vol/trino-spill1:/data/trino-spill1
+    depends_on:
+      trino-init:
+        condition: service_completed_successfully
+      hive-metastore:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/v1/info || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      # HTTPS router with Let's Encrypt
+      - "traefik.http.routers.trino.rule=Host(`${TRINO_DOMAIN}`)"
+      - "traefik.http.routers.trino.entrypoints=websecure"
+      - "traefik.http.routers.trino.tls=true"
+      - "traefik.http.routers.trino.middlewares=trino-headers"
+      # Complete middleware headers for Trino authentication
+      - "traefik.http.middlewares.trino-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.trino-headers.headers.customrequestheaders.X-Forwarded-Host=${TRINO_DOMAIN}"
+      - "traefik.http.services.trino.loadbalancer.server.port=8080"
+    networks:
+      - trino-network
+
+  postgres:
+    image: 'postgres:11'
+    hostname: postgres
+    ports:
+      - '5455:5432'
+    env_file:
+      - .env
+    networks:
+      - trino-network
+
+  hive-metastore:
+    build:
+      context: .
+      dockerfile: Dockerfile.hivemetastore
+    hostname: hive-metastore
+    ports:
+      - '${METASTORE_PORT:-9083}:9083' # Thrift untuk Trino connection
+    env_file:
+      - .env
+    environment:
+      METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9083"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - trino-network
+
+  ddl-seed:
+    build:
+      context: .
+      dockerfile: Dockerfile.seed
+    volumes:
+      - ./docker-vol/output:/output
+      - ./docker-vol/trino-config:/etc/trino/dynamic
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore:
+        condition: service_started
+      trino-coordinator:
+        condition: service_healthy
+    networks:
+      - trino-network
+networks:
+  trino-network:
+    driver: bridge
