@@ -15,9 +15,6 @@ COPY scripts/generate_trino_views.py /app/generate_trino_views.py
 # Copy the execute DDL script
 COPY scripts/execute_ddl.py /app/execute_ddl.py
 
-# Copy the password generator script
-COPY scripts/generate_password_db.py /app/generate_password_db.py
-
 
 # Create output directory
 RUN mkdir -p /output

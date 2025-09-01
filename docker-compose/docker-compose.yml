@@ -1,5 +1,32 @@
 version: '3.7'
 services:
+  traefik:
+    container_name: traefik
+    image: traefik:v3.3
+    command:
+      - --api.insecure=true
+      - --log.level=DEBUG
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --accesslog=true
+      - --entryPoints.web.address=:80
+      - --entryPoints.websecure.address=:443
+      - --providers.docker.defaultrule=Host(`{{normalize .Name}}.localhost`)
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8081:8080"  # Traefik dashboard
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore:
+        condition: service_started
+      trino-coordinator:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - trino-network
   trino-init:
     build:
       context: .
@@ -16,7 +43,7 @@ services:
     image: 'trinodb/trino:latest'
     hostname: trino-coordinator
     ports:
-      - '8080:8080'
+      - "8080:8080"
     env_file:
       - .env
     volumes:
@@ -35,6 +62,23 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      # HTTP router (redirect to HTTPS)
+      - "traefik.http.routers.trino-http.rule=Host(`trino.localhost`)"
+      - "traefik.http.routers.trino-http.entrypoints=web"
+      - "traefik.http.routers.trino-http.middlewares=trino-redirect"
+      - "traefik.http.middlewares.trino-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.trino-redirect.redirectscheme.permanent=true"
+      # HTTPS router
+      - "traefik.http.routers.trino.rule=Host(`trino.localhost`)"
+      - "traefik.http.routers.trino.entrypoints=websecure"
+      - "traefik.http.routers.trino.tls=true"
+      - "traefik.http.routers.trino.middlewares=trino-headers"
+      # Complete middleware headers for Trino authentication
+      - "traefik.http.middlewares.trino-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.trino-headers.headers.customrequestheaders.X-Forwarded-Host=trino.localhost"
+      - "traefik.http.services.trino.loadbalancer.server.port=8080"
     networks:
       - trino-network
 
@@ -81,8 +125,21 @@ services:
     env_file:
       - .env
     depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore:
+        condition: service_started
       trino-coordinator:
         condition: service_healthy
+    networks:
+      - trino-network
+  whoami:
+    image: "traefik/whoami"
+    container_name: "whoami"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.localhost`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
     networks:
       - trino-network
 
