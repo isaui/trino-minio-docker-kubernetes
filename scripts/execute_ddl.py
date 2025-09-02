@@ -124,7 +124,7 @@ Examples:
     
     parser.add_argument(
         '--host', 
-        default=os.getenv('TRINO_HOST', 'trino-coordinator'),
+        default=os.getenv('TRINO_HOST', 'trino-cluster-trino'),
         help='Trino coordinator hostname (default: trino-coordinator or TRINO_HOST env var)'
     )
     
