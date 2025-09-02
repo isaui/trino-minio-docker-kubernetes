@@ -9,7 +9,7 @@ python3 generate_password_db.py
 # Wait for Trino to be healthy
 echo "Waiting for Trino coordinator to be ready..."
 for i in $(seq 1 30); do
-    if wget --spider -q http://trino-coordinator:8080/v1/info 2>/dev/null; then
+    if wget --spider -q http://trino-cluster-trino:8080/v1/info 2>/dev/null; then
         echo "Trino coordinator is ready!"
         break
     fi
@@ -18,7 +18,7 @@ for i in $(seq 1 30); do
 done
 
 # Check if Trino is ready
-if ! wget --spider -q http://trino-coordinator:8080/v1/info 2>/dev/null; then
+if ! wget --spider -q http://trino-cluster-trino:8080/v1/info 2>/dev/null; then
     echo "ERROR: Trino coordinator failed to become ready within 5 minutes"
     exit 1
 fi
