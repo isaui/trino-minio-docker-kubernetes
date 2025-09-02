@@ -12,7 +12,7 @@ ENV HIVE_HOME=/opt/apache-hive-metastore-${METASTORE_VERSION}-bin
 ENV METASTORE_CONFIG_PATH=/opt/apache-hive-metastore-3.0.0-bin/conf/metastore-site.xml
 
 # Install system packages - cache this layer
-RUN apt-get update && apt-get install -y netcat curl python3 python3-pip
+RUN apt-get update && apt-get install -y netcat curl python3 python3-pip dos2unix
 
 # Download and extract all dependencies - HEAVY LAYER, cache this!
 RUN curl -L https://downloads.apache.org/hive/hive-standalone-metastore-${METASTORE_VERSION}/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz | tar zxf - && \
@@ -41,8 +41,8 @@ RUN groupadd -r hive --gid=1000 && \
 COPY scripts/metastore-entrypoint.sh /entrypoint.sh
 COPY scripts/generate_metastore_config.py /opt/scripts/generate_metastore_config.py
 
-# Set permissions - final layer
-RUN chmod +x /entrypoint.sh && chown hive:hive /entrypoint.sh && \
+# Convert line endings and set permissions - final layer (multiplatform support)
+RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh && chown hive:hive /entrypoint.sh && \
     chmod +x /opt/scripts/generate_metastore_config.py && chown hive:hive -R /opt/scripts
 
 USER hive
