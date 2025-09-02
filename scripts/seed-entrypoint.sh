@@ -2,10 +2,6 @@
 
 echo "Starting DDL generation seed container..."
 
-# Generate password.db from environment variables
-echo "Generating Trino password database from environment variables..."
-python3 generate_password_db.py
-
 # Wait for Trino to be healthy
 echo "Waiting for Trino coordinator to be ready..."
 for i in $(seq 1 30); do
