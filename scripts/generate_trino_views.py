@@ -10,6 +10,7 @@ import os
 import logging
 import s3fs
 import re
+import argparse
 import pyarrow.parquet as pq
 import pyarrow as pa
 from io import BytesIO
@@ -438,11 +439,58 @@ def generate_trino_ddl(output_file=None):
 
 
 if __name__ == "__main__":
+    # Load environment variables from .env file
+    load_dotenv()
+    
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description='Generate Trino DDL statements from MinIO parquet files',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Use default output file (trino-ddl.sql)
+  python generate_trino_views.py
+  
+  # Specify custom output file
+  python generate_trino_views.py --output /custom/path/ddl.sql
+  
+  # Use environment variable for output
+  DDL_OUTPUT=/custom/ddl.sql python generate_trino_views.py
+        """
+    )
+    
+    parser.add_argument(
+        '--output', '-o',
+        default=os.getenv('DDL_OUTPUT', 'trino-ddl.sql'),
+        help='Output DDL file path (default: trino-ddl.sql or DDL_OUTPUT env var)'
+    )
+    
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose logging'
+    )
+    
+    args = parser.parse_args()
+    
     # Set up logging
+    log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # Generate Trino DDL and save to file
-    generate_trino_ddl(output_file='trino-ddl.sql')
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"🚀 DDL Generation Parameters:")
+        logger.info(f"   Output file: {args.output}")
+        
+        # Generate Trino DDL and save to file
+        generate_trino_ddl(output_file=args.output)
+        
+        logger.info(f"✅ DDL generation completed successfully!")
+        
+    except Exception as e:
+        logger.error(f"💥 DDL generation failed: {e}")
+        exit(1)
