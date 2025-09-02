@@ -8,6 +8,8 @@ Connects to Trino and executes the generated DDL statements
 import os
 import logging
 import time
+import argparse
+from dotenv import load_dotenv
 from trino.dbapi import connect
 
 def wait_for_trino(host, port, max_attempts=30):
@@ -125,25 +127,73 @@ def execute_ddl_file(ddl_file_path, host='trino-coordinator', port=8080):
     return executed_count, failed_count
 
 if __name__ == "__main__":
+    # Load environment variables from .env file
+    load_dotenv()
+    
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description='Execute DDL statements in Trino',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Use defaults (trino-coordinator:8080, /output/trino-ddl.sql)
+  python execute_ddl.py
+  
+  # Specify custom host and file
+  python execute_ddl.py --host localhost --port 8080 --file /path/to/ddl.sql
+        """
+    )
+    
+    parser.add_argument(
+        '--host', 
+        default=os.getenv('TRINO_HOST', 'trino-coordinator'),
+        help='Trino coordinator hostname (default: trino-coordinator or TRINO_HOST env var)'
+    )
+    
+    parser.add_argument(
+        '--port', 
+        type=int,
+        default=int(os.getenv('TRINO_PORT', '8080')),
+        help='Trino coordinator port (default: 8080 or TRINO_PORT env var)'
+    )
+    
+    parser.add_argument(
+        '--file', 
+        default=os.getenv('DDL_FILE', '/output/trino-ddl.sql'),
+        help='DDL file path (default: /output/trino-ddl.sql or DDL_FILE env var)'
+    )
+    
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose logging'
+    )
+    
+    args = parser.parse_args()
+    
     # Set up logging
+    log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     
     logger = logging.getLogger(__name__)
     
     try:
-        # Execute DDL
-        ddl_file = '/output/trino-ddl.sql'
-        logger.info(f"Starting DDL execution from: {ddl_file}")
+        logger.info(f"🚀 DDL Execution Parameters:")
+        logger.info(f"   Host: {args.host}")
+        logger.info(f"   Port: {args.port}")
+        logger.info(f"   File: {args.file}")
         
-        success, failed = execute_ddl_file(ddl_file)
+        # Execute DDL
+        success, failed = execute_ddl_file(args.file, args.host, args.port)
         
         if failed == 0:
             logger.info("🎉 All DDL statements executed successfully!")
         else:
             logger.warning(f"⚠️ DDL execution completed with {failed} failures")
+            exit(1)
             
     except Exception as e:
         logger.error(f"💥 DDL execution failed: {e}")
