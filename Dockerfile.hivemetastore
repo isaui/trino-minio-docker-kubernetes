@@ -15,17 +15,15 @@ ENV METASTORE_CONFIG_PATH=/opt/apache-hive-metastore-3.0.0-bin/conf/metastore-si
 RUN apt-get update && apt-get install -y netcat curl python3 python3-pip
 
 # Download and extract all dependencies - HEAVY LAYER, cache this!
-RUN curl -L https://downloads.apache.org/hive/hive-standalone-metastore-${METASTORE_VERSION}/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz | tar zxf - && \
-    curl -L https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz | tar zxf - && \
-    curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.19.tar.gz | tar zxf - && \
-    curl -L --output postgresql-42.4.0.jar https://jdbc.postgresql.org/download/postgresql-42.4.0.jar && \
-    curl -L --output hive-exec-${METASTORE_VERSION}.jar https://repo1.maven.org/maven2/org/apache/hive/hive-exec/${METASTORE_VERSION}/hive-exec-${METASTORE_VERSION}.jar && \
+RUN cp installer/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz . && \
+    cp installer/hadoop-${HADOOP_VERSION}.tar.gz . && \
+    cp installer/mysql-connector-java-8.0.19.tar.gz . && \
+    tar zxf hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz && \
+    tar zxf hadoop-${HADOOP_VERSION}.tar.gz && \
+    tar zxf mysql-connector-java-8.0.19.tar.gz && \
     cp mysql-connector-java-8.0.19/mysql-connector-java-8.0.19.jar ${HIVE_HOME}/lib/ && \
-    cp postgresql-42.4.0.jar ${HIVE_HOME}/lib/ && \
-    cp hive-exec-${METASTORE_VERSION}.jar ${HIVE_HOME}/lib/ && \
-    rm -rf mysql-connector-java-8.0.19 && \
-    rm -rf postgresql-42.4.0.jar && \
-    rm -rf hive-exec-${METASTORE_VERSION}.jar
+    cp installer/postgresql-42.4.0.jar ${HIVE_HOME}/lib/ && \
+    cp installer/hive-exec-${METASTORE_VERSION}.jar ${HIVE_HOME}/lib/ && \
 
 # Create users and directories - stable layer
 RUN groupadd -r hive --gid=1000 && \
