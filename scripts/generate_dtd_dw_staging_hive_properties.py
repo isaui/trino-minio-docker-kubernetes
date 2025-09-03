@@ -3,8 +3,8 @@
 import os
 import sys
 
-def generate_hive_properties():
-    """Generate hive.properties file from environment variables"""
+def generate_dtd_dw_staging_hive_properties():
+    """Generate dtd-dw-staging.properties file from environment variables"""
     
     # Get environment variables (no defaults - must be provided)
     s3_endpoint = os.getenv('MINIO_ENDPOINT')
@@ -22,7 +22,7 @@ def generate_hive_properties():
     if not s3_secret_key:
         raise ValueError("MINIO_SECRET_KEY environment variable is required")
     
-    # Hive properties template
+    # Hive properties template for staging
     hive_properties_content = f"""connector.name=hive
 hive.metastore.uri={metastore_uri}
 fs.native-s3.enabled=true
@@ -38,18 +38,18 @@ hive.non-managed-table-writes-enabled=true
     catalog_dir = '/etc/trino/catalog'
     os.makedirs(catalog_dir, exist_ok=True)
     
-    hive_properties_path = os.path.join(catalog_dir, 'hive.properties')
+    hive_properties_path = os.path.join(catalog_dir, 'dtd-dw-staging.properties')
     
     with open(hive_properties_path, 'w') as f:
         f.write(hive_properties_content)
     
-    print(f"✅ Generated hive.properties at {hive_properties_path}")
+    print(f"✅ Generated dtd-dw-staging.properties at {hive_properties_path}")
     print("📝 S3 credentials are now hidden from host filesystem")
 
 if __name__ == "__main__":
     try:
-        generate_hive_properties()
+        generate_dtd_dw_staging_hive_properties()
         sys.exit(0)
     except Exception as e:
-        print(f"❌ Error generating hive.properties: {e}")
+        print(f"❌ Error generating dtd-dw-staging.properties: {e}")
         sys.exit(1)

@@ -14,14 +14,22 @@ else
     exit 1
 fi
 
-# Generate hive properties
-echo "📝 Generating hive.properties..."
-python /app/generate_hive_properties.py
+# Generate hive properties for production
+echo "📝 Generating dtd-dw.properties..."
+python /app/generate_dtd_dw_hive_properties.py
 if [ $? -eq 0 ]; then
-    echo "✅ Hive properties generated successfully"
+    echo "✅ DTD-DW production properties generated successfully"
 else
-    echo "❌ Failed to generate hive properties"
-    exit 1
+    echo "❌ Failed to generate dtd-dw production properties"
+fi
+
+# Generate hive properties for staging
+echo "📝 Generating dtd-dw-staging.properties..."
+python /app/generate_dtd_dw_staging_hive_properties.py
+if [ $? -eq 0 ]; then
+    echo "✅ DTD-DW staging properties generated successfully"
+else
+    echo "❌ Failed to generate dtd-dw staging properties"
 fi
 
 echo "🎉 Trino initialization completed successfully!"

@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy generator scripts
-COPY scripts/generate_hive_properties.py /app/generate_hive_properties.py
+COPY scripts/generate_dtd_dw_hive_properties.py /app/generate_dtd_dw_hive_properties.py
+COPY scripts/generate_dtd_dw_staging_hive_properties.py /app/generate_dtd_dw_staging_hive_properties.py
 COPY scripts/init.sh /app/init.sh
 
 # Convert line endings and make executable (multiplatform support)

@@ -11,10 +11,11 @@ WORKDIR /app
 
 # Copy the generate script
 COPY scripts/generate_trino_views.py /app/generate_trino_views.py
+COPY scripts/generate_trino_staging_views.py /app/generate_trino_staging_views.py
 
 # Copy the execute DDL script
 COPY scripts/execute_ddl.py /app/execute_ddl.py
-
+COPY scripts/execute_ddl_staging.py /app/execute_ddl_staging.py
 
 # Create output directory
 RUN mkdir -p /output
