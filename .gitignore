@@ -5,6 +5,7 @@
 output/
 logs/
 data/
+installer/
 
 # Docker volumes and data
 volumes/

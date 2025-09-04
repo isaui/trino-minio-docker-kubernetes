@@ -2,7 +2,7 @@
 set -e
 
 # Inputs (override here or via environment)
-HADOOP_VERSION="${HADOOP_VERSION:-3.2.0}"
+HADOOP_VERSION="${HADOOP_VERSION=3.4.1}"
 METASTORE_VERSION="${METASTORE_VERSION:-3.0.0}"
 INSTALLER_DIR="$(dirname "$0")/../installer"
 mkdir -p "$INSTALLER_DIR"
@@ -11,8 +11,8 @@ mkdir -p "$INSTALLER_DIR"
 curl -L "https://downloads.apache.org/hive/hive-standalone-metastore-${METASTORE_VERSION}/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz" \
 	-o "$INSTALLER_DIR/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz"
 
-# Download Hadoop
-curl -L "https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz" \
+# Download Hadoop (using Apache CDN - faster than archive.apache.org)
+curl -L "https://downloads.apache.org/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz" \
 	-o "$INSTALLER_DIR/hadoop-${HADOOP_VERSION}.tar.gz"
 
 # Download MySQL Connector
