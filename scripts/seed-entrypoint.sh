@@ -2,10 +2,6 @@
 
 echo "Starting DDL generation seed container..."
 
-# Generate password.db from environment variables
-echo "Generating Trino password database from environment variables..."
-python3 generate_password_db.py
-
 # Wait for Trino to be healthy
 echo "Waiting for Trino coordinator to be ready..."
 for i in $(seq 1 30); do
@@ -29,6 +25,7 @@ cd /app
 # Generate DDL file
 echo "Generating Trino DDL from parquet files..."
 python3 generate_trino_views.py
+python3 generate_trino_staging_views.py
 
 # Check if DDL was generated
 if [ -f "trino-ddl.sql" ]; then
@@ -51,11 +48,35 @@ if [ -f "trino-ddl.sql" ]; then
         echo "DDL execution completed successfully!"
     else
         echo "DDL execution failed - check logs above"
-        exit 1
     fi
 else
     echo "Failed to generate DDL file"
-    exit 1
+fi
+
+# Check if DDL was generated
+if [ -f "trino-ddl-staging.sql" ]; then
+    echo "Staging DDL file generated successfully"
+    
+    # Copy to shared output directory
+    cp trino-ddl-staging.sql /output/trino-ddl-staging.sql
+    echo "Staging DDL file copied to /output/trino-ddl-staging.sql"
+    
+    # Show first few lines for debugging
+    echo "--- Staging DDL Preview ---"
+    head -20 /output/trino-ddl-staging.sql
+    echo "--- End Preview ---"
+    
+    # Execute DDL in Trino
+    echo "Executing staging DDL statements in Trino..."
+    python3 execute_ddl_staging.py
+    
+    if [ $? -eq 0 ]; then
+        echo "Staging DDL execution completed successfully!"
+    else
+        echo "Staging DDL execution failed - check logs above"
+    fi
+else
+    echo "Failed to generate staging DDL file"
 fi
 
 echo "DDL generation and execution completed. Container will exit now."

@@ -1,4 +1,30 @@
 services:
+  traefik:
+    container_name: traefik
+    image: traefik:v3.3
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --accesslog=true
+      - --entryPoints.web.address=:80
+      - --entryPoints.websecure.address=:443
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8081:8080"  # Traefik dashboard
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore:
+        condition: service_started
+      trino-coordinator:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-vol/letsencrypt:/letsencrypt
+    networks:
+      - trino-network
   trino-init:
     build:
       context: .
@@ -35,11 +61,22 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      # HTTPS router with Let's Encrypt
+      - "traefik.http.routers.trino.rule=Host(`${TRINO_DOMAIN}`)"
+      - "traefik.http.routers.trino.entrypoints=websecure"
+      - "traefik.http.routers.trino.tls=true"
+      - "traefik.http.routers.trino.middlewares=trino-headers"
+      # Complete middleware headers for Trino authentication
+      - "traefik.http.middlewares.trino-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.trino-headers.headers.customrequestheaders.X-Forwarded-Host=${TRINO_DOMAIN}"
+      - "traefik.http.services.trino.loadbalancer.server.port=8080"
     networks:
       - trino-network
 
   postgres:
-    image: 'postgres:11'
+    image: 'postgres:16'
     hostname: postgres
     ports:
       - '5455:5432'
@@ -79,11 +116,14 @@ services:
     env_file:
       - .env
     depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore:
+        condition: service_started
       trino-coordinator:
         condition: service_healthy
     networks:
       - trino-network
-
 networks:
   trino-network:
     driver: bridge

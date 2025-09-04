@@ -1,7 +1,7 @@
 """
-Trino DDL Generator for Parquet Files
+Trino DDL Generator for Staging Parquet Files
 
-Generates CREATE TABLE and VIEW statements for Trino from Parquet files in MinIO
+Generates CREATE TABLE and VIEW statements for Trino from Parquet files in MinIO staging bucket
 Uses PyArrow for automatic schema detection and s3fs for file listing
 """
 
@@ -82,18 +82,18 @@ def list_latest_bucket_paths(storage_options, bucket_name, max_depth=10):
     fs = s3fs.S3FileSystem(**storage_options)
     
     # Test connection to MinIO S3 first
-    logger.info(f"Testing connection to MinIO S3 bucket: {bucket_name}")
+    logger.info(f"Testing connection to MinIO S3 staging bucket: {bucket_name}")
     try:
         # Try to list the bucket root to test connectivity
         bucket_contents = fs.ls(bucket_name, detail=False)
-        logger.info(f"✅ Successfully connected to MinIO S3 bucket: {bucket_name}")
+        logger.info(f"✅ Successfully connected to MinIO S3 staging bucket: {bucket_name}")
         logger.info(f"Bucket root contains {len(bucket_contents)} items")
         if len(bucket_contents) == 0:
-            logger.warning("⚠️  Bucket appears to be empty - this might indicate connection issues or an actually empty bucket")
+            logger.warning("⚠️  Staging bucket appears to be empty - this might indicate connection issues or an actually empty bucket")
     except Exception as e:
-        logger.error(f"❌ Failed to connect to MinIO S3 bucket '{bucket_name}': {e}")
+        logger.error(f"❌ Failed to connect to MinIO S3 staging bucket '{bucket_name}': {e}")
         logger.error("Please check your S3 credentials and endpoint configuration")
-        raise ConnectionError(f"Cannot connect to MinIO S3 bucket '{bucket_name}': {e}")
+        raise ConnectionError(f"Cannot connect to MinIO S3 staging bucket '{bucket_name}': {e}")
     
     all_paths_with_data = []
     
@@ -132,17 +132,17 @@ def list_latest_bucket_paths(storage_options, bucket_name, max_depth=10):
             logger.warning(f"Could not explore {current_path}: {e}")
             # Don't re-raise here, just log and continue with other paths
     
-    logger.info(f"Starting to explore bucket: {bucket_name}")
+    logger.info(f"Starting to explore staging bucket: {bucket_name}")
     explore_directory(bucket_name)
     logger.info(f"Exploration completed. Found {len(all_paths_with_data)} total paths with parquet data")
     
     if len(all_paths_with_data) == 0:
-        logger.warning("⚠️  No paths with parquet files found in the bucket")
+        logger.warning("⚠️  No paths with parquet files found in the staging bucket")
         logger.warning("This could mean:")
-        logger.warning("  - The bucket is empty")
-        logger.warning("  - No parquet files exist in the bucket")
+        logger.warning("  - The staging bucket is empty")
+        logger.warning("  - No parquet files exist in the staging bucket")
         logger.warning("  - Connection issues prevented proper exploration")
-        logger.warning("  - Insufficient permissions to access bucket contents")
+        logger.warning("  - Insufficient permissions to access staging bucket contents")
     
     # Group paths by base path (without date) and find latest for each
     base_path_groups = {}
@@ -305,9 +305,9 @@ WITH (
     return ddl
 
 
-def generate_trino_ddl(output_file=None):
+def generate_trino_staging_ddl(output_file=None):
     """
-    Generate complete Trino DDL script with tables and views from Parquet files
+    Generate complete Trino DDL script with tables and views from Staging Parquet files
     """
     logger = logging.getLogger(__name__)
     
@@ -315,15 +315,15 @@ def generate_trino_ddl(output_file=None):
     env_file = os.path.join(os.path.dirname(__file__), '..', '.env')
     load_dotenv(env_file)
     
-    # Get MinIO config from environment
-    bucket_name = os.getenv('MINIO_WAREHOUSE_BUCKET')
+    # Get MinIO staging config from environment
+    bucket_name = os.getenv('MINIO_STAGING_WAREHOUSE_BUCKET')
     endpoint = os.getenv('MINIO_ENDPOINT')
     access_key = os.getenv('MINIO_ACCESS_KEY')
     secret_key = os.getenv('MINIO_SECRET_KEY')
     use_ssl = endpoint.startswith('https')
     
     logger.info(f"Using MinIO endpoint: {endpoint}")
-    logger.info(f"Using bucket: {bucket_name}")
+    logger.info(f"Using staging bucket: {bucket_name}")
     
     # Configure s3fs storage options
     storage_options = {
@@ -341,22 +341,22 @@ def generate_trino_ddl(output_file=None):
         latest_paths = list_latest_bucket_paths(storage_options, bucket_name)
         
         if not latest_paths:
-            logger.warning("No paths with parquet data found in bucket")
+            logger.warning("No paths with parquet data found in staging bucket")
             latest_paths = []
         
-        logger.info(f"Found {len(latest_paths)} latest paths to generate DDL for")
+        logger.info(f"Found {len(latest_paths)} latest paths to generate staging DDL for")
         
         # Collect schemas and generate DDL
         schemas = set()
         
         # Generate complete DDL script header
         ddl_lines = [
-            "-- Trino DDL script for Parquet files in MinIO",
-            "-- Generated automatically from parquet file schemas", 
-            "-- Run this script in Trino CLI after connecting to hive catalog",
+            "-- Trino DDL script for Staging Parquet files in MinIO",
+            "-- Generated automatically from staging parquet file schemas", 
+            "-- Run this script in Trino CLI after connecting to dtd-dw-staging catalog",
             "",
-            "-- Use hive catalog",
-            "USE hive.default;",
+            "-- Use dtd-dw-staging catalog",
+            "USE \"dtd-dw-staging\".default;",
             ""
         ]
         
@@ -397,8 +397,8 @@ def generate_trino_ddl(output_file=None):
             schema_ddl = ["-- Create schemas"]
             for schema in sorted(schemas):
                 schema_ddl.extend([
-                    f"DROP SCHEMA IF EXISTS hive.{schema} CASCADE;",
-                    f"CREATE SCHEMA hive.{schema};",
+                    f"DROP SCHEMA IF EXISTS \"dtd-dw-staging\".{schema} CASCADE;",
+                    f"CREATE SCHEMA \"dtd-dw-staging\".{schema};",
                     ""
                 ])
             
@@ -415,7 +415,7 @@ def generate_trino_ddl(output_file=None):
         
         for schema in sorted(schemas):
             ddl_lines.extend([
-                f"SHOW TABLES FROM hive.{schema};",
+                f"SHOW TABLES FROM \"dtd-dw-staging\".{schema};",
                 ""
             ])
         
@@ -424,17 +424,17 @@ def generate_trino_ddl(output_file=None):
         
         # Output results
         if output_file:
-            logger.info(f"Writing Trino DDL script to {output_file}")
+            logger.info(f"Writing Trino Staging DDL script to {output_file}")
             with open(output_file, 'w') as f:
                 f.write(ddl_content)
-            logger.info(f"Trino DDL script written to {output_file}")
+            logger.info(f"Trino Staging DDL script written to {output_file}")
         else:
             print(ddl_content)
         
         return ddl_content
         
     except Exception as e:
-        logger.error(f"Failed to generate Trino DDL script: {e}")
+        logger.error(f"Failed to generate Trino Staging DDL script: {e}")
         raise
 
 
@@ -444,25 +444,25 @@ if __name__ == "__main__":
     
     # Set up argument parser
     parser = argparse.ArgumentParser(
-        description='Generate Trino DDL statements from MinIO parquet files',
+        description='Generate Trino DDL statements from MinIO staging parquet files',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Use default output file (trino-ddl.sql)
-  python generate_trino_views.py
+  # Use default output file (trino-ddl-staging.sql)
+  python generate_trino_staging_views.py
   
   # Specify custom output file
-  python generate_trino_views.py --output /custom/path/ddl.sql
+  python generate_trino_staging_views.py --output /custom/path/ddl-staging.sql
   
   # Use environment variable for output
-  DDL_OUTPUT=/custom/ddl.sql python generate_trino_views.py
+  STAGING_DDL_OUTPUT=/custom/ddl-staging.sql python generate_trino_staging_views.py
         """
     )
     
     parser.add_argument(
         '--output', '-o',
-        default=os.getenv('DDL_OUTPUT', 'trino-ddl.sql'),
-        help='Output DDL file path (default: trino-ddl.sql or DDL_OUTPUT env var)'
+        default=os.getenv('STAGING_DDL_OUTPUT', 'trino-ddl-staging.sql'),
+        help='Output DDL file path (default: trino-ddl-staging.sql or STAGING_DDL_OUTPUT env var)'
     )
     
     parser.add_argument(
@@ -483,14 +483,14 @@ Examples:
     logger = logging.getLogger(__name__)
     
     try:
-        logger.info(f"🚀 DDL Generation Parameters:")
+        logger.info(f"🚀 Staging DDL Generation Parameters:")
         logger.info(f"   Output file: {args.output}")
         
-        # Generate Trino DDL and save to file
-        generate_trino_ddl(output_file=args.output)
+        # Generate Trino Staging DDL and save to file
+        generate_trino_staging_ddl(output_file=args.output)
         
-        logger.info(f"✅ DDL generation completed successfully!")
+        logger.info(f"✅ Staging DDL generation completed successfully!")
         
     except Exception as e:
-        logger.error(f"💥 DDL generation failed: {e}")
+        logger.error(f"💥 Staging DDL generation failed: {e}")
         exit(1)

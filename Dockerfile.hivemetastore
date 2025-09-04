@@ -3,7 +3,7 @@ FROM openjdk:8-jre-slim-bullseye
 WORKDIR /opt
 
 # Environment variables - these rarely change
-ENV HADOOP_VERSION=3.2.0
+ENV HADOOP_VERSION=3.4.1
 ENV METASTORE_VERSION=3.0.0
 ENV HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
 ENV HIVE_HOME=/opt/apache-hive-metastore-${METASTORE_VERSION}-bin
@@ -12,20 +12,51 @@ ENV HIVE_HOME=/opt/apache-hive-metastore-${METASTORE_VERSION}-bin
 ENV METASTORE_CONFIG_PATH=/opt/apache-hive-metastore-3.0.0-bin/conf/metastore-site.xml
 
 # Install system packages - cache this layer
-RUN apt-get update && apt-get install -y netcat curl python3 python3-pip
+RUN apt-get update && apt-get install -y netcat curl python3 python3-pip dos2unix
 
-# Download and extract all dependencies - HEAVY LAYER, cache this!
-RUN curl -L https://downloads.apache.org/hive/hive-standalone-metastore-${METASTORE_VERSION}/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz | tar zxf - && \
-    curl -L https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz | tar zxf - && \
-    curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.19.tar.gz | tar zxf - && \
-    curl -L --output postgresql-42.4.0.jar https://jdbc.postgresql.org/download/postgresql-42.4.0.jar && \
-    curl -L --output hive-exec-${METASTORE_VERSION}.jar https://repo1.maven.org/maven2/org/apache/hive/hive-exec/${METASTORE_VERSION}/hive-exec-${METASTORE_VERSION}.jar && \
+# Copy cached dependencies from installer/ directory (run download-executables.sh first!)
+COPY installer/ /tmp/installer/
+
+# Validate all required files exist with helpful error messages
+RUN echo "🔍 Validating cached dependencies..." && \
+    if [ ! -f "/tmp/installer/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz" ]; then \
+        echo "❌ ERROR: hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz not found!"; \
+        echo "💡 Please run: ./scripts/download-executables.sh"; \
+        exit 1; \
+    fi && \
+    if [ ! -f "/tmp/installer/hadoop-${HADOOP_VERSION}.tar.gz" ]; then \
+        echo "❌ ERROR: hadoop-${HADOOP_VERSION}.tar.gz not found!"; \
+        echo "💡 Please run: ./scripts/download-executables.sh"; \
+        exit 1; \
+    fi && \
+    if [ ! -f "/tmp/installer/mysql-connector-java-8.0.19.tar.gz" ]; then \
+        echo "❌ ERROR: mysql-connector-java-8.0.19.tar.gz not found!"; \
+        echo "💡 Please run: ./scripts/download-executables.sh"; \
+        exit 1; \
+    fi && \
+    if [ ! -f "/tmp/installer/postgresql-42.4.0.jar" ]; then \
+        echo "❌ ERROR: postgresql-42.4.0.jar not found!"; \
+        echo "💡 Please run: ./scripts/download-executables.sh"; \
+        exit 1; \
+    fi && \
+    if [ ! -f "/tmp/installer/hive-exec-${METASTORE_VERSION}.jar" ]; then \
+        echo "❌ ERROR: hive-exec-${METASTORE_VERSION}.jar not found!"; \
+        echo "💡 Please run: ./scripts/download-executables.sh"; \
+        exit 1; \
+    fi && \
+    echo "✅ All required dependencies found in installer/ directory"
+
+# Extract and install all dependencies - HEAVY LAYER, cache this!
+RUN cp /tmp/installer/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz . && \
+    cp /tmp/installer/hadoop-${HADOOP_VERSION}.tar.gz . && \
+    cp /tmp/installer/mysql-connector-java-8.0.19.tar.gz . && \
+    tar zxf hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz && \
+    tar zxf hadoop-${HADOOP_VERSION}.tar.gz && \
+    tar zxf mysql-connector-java-8.0.19.tar.gz && \
     cp mysql-connector-java-8.0.19/mysql-connector-java-8.0.19.jar ${HIVE_HOME}/lib/ && \
-    cp postgresql-42.4.0.jar ${HIVE_HOME}/lib/ && \
-    cp hive-exec-${METASTORE_VERSION}.jar ${HIVE_HOME}/lib/ && \
-    rm -rf mysql-connector-java-8.0.19 && \
-    rm -rf postgresql-42.4.0.jar && \
-    rm -rf hive-exec-${METASTORE_VERSION}.jar
+    cp /tmp/installer/postgresql-42.4.0.jar ${HIVE_HOME}/lib/ && \
+    cp /tmp/installer/hive-exec-${METASTORE_VERSION}.jar ${HIVE_HOME}/lib/ && \
+    rm -rf /tmp/installer
 
 # Create users and directories - stable layer
 RUN groupadd -r hive --gid=1000 && \
@@ -41,8 +72,8 @@ RUN groupadd -r hive --gid=1000 && \
 COPY scripts/metastore-entrypoint.sh /entrypoint.sh
 COPY scripts/generate_metastore_config.py /opt/scripts/generate_metastore_config.py
 
-# Set permissions - final layer
-RUN chmod +x /entrypoint.sh && chown hive:hive /entrypoint.sh && \
+# Convert line endings and set permissions - final layer (multiplatform support)
+RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh && chown hive:hive /entrypoint.sh && \
     chmod +x /opt/scripts/generate_metastore_config.py && chown hive:hive -R /opt/scripts
 
 USER hive

@@ -3,18 +3,17 @@ FROM python:3.11-slim
 # Install required packages
 RUN apt-get update && apt-get install -y \
     curl \
+    apache2-utils \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-RUN pip install bcrypt
-
 # Copy generator scripts
-COPY scripts/generate_password_db.py /app/generate_password_db.py
-COPY scripts/generate_hive_properties.py /app/generate_hive_properties.py
+COPY scripts/generate_dtd_dw_hive_properties.py /app/generate_dtd_dw_hive_properties.py
+COPY scripts/generate_dtd_dw_staging_hive_properties.py /app/generate_dtd_dw_staging_hive_properties.py
 COPY scripts/init.sh /app/init.sh
 
-# Make init script executable
-RUN chmod +x /app/init.sh
+# Convert line endings and make executable (multiplatform support)
+RUN dos2unix /app/init.sh && chmod +x /app/init.sh
 
 # Create working directory
 WORKDIR /app
