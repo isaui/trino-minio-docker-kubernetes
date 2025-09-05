@@ -27,15 +27,12 @@ build_image:
 deploy:kubernetes:
   stage: deploy
   image:
-    name: alpine:3.12
+    name: bitnami/kubectl:latest
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy-kubernetes"'
   before_script:
     - echo "Start deploying ..."
   script:
-    - apk update && apk add --no-cache curl
-    - curl -LO $KUBECTL_URL
-    - chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
     - mkdir -p $HOME/.kube
     - echo -n $kube_config_dtd | base64 -d > $HOME/.kube/config
     - ls -lah $HOME/.kube/
@@ -43,7 +40,7 @@ deploy:kubernetes:
     - kubectl --kubeconfig $HOME/.kube/config get pod
     - sed -i "s/IMAGE_TAG/$CI_COMMIT_SHORT_SHA/g" k8s/trino-ddl-seed.yaml
     - sed -i "s|IMAGE_NAME|$IMAGE_NAME|g" k8s/trino-ddl-seed.yaml
-    - kubectl --kubeconfig $HOME/.kube/config delete job trino-ddl-seed --ignore-not-found
+    - kubectl --kubeconfig $HOME/.kube/config delete job -n dtd-datavisualization trino-ddl-seed --ignore-not-found
     - kubectl --kubeconfig $HOME/.kube/config apply -f k8s/trino-ddl-seed.yaml
 
 
