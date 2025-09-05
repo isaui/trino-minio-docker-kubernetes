@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+Execute DDL Script in Trino
+
+Connects to Trino and executes the generated DDL statements
+"""
+
 import os
 import logging
 import time
@@ -7,7 +13,7 @@ from dotenv import load_dotenv
 from trino.dbapi import connect
 
 def wait_for_trino(host, port, max_attempts=30):
-    """Wait for Trino to be ready (with auth if enabled)."""
+    """Wait for Trino to be ready"""
     logger = logging.getLogger(__name__)
     username = os.getenv('TRINO_USERNAME', 'admin')
     
@@ -15,10 +21,23 @@ def wait_for_trino(host, port, max_attempts=30):
     
     for attempt in range(max_attempts):
         try:
-            conn = _connect_trino(host, port)
+            logger.debug(f"Attempt {attempt + 1}/{max_attempts}: Connecting to Trino...")
+            
+            # Try to connect to Trino without auth (HTTP mode)
+            conn = connect(
+                host=host,
+                port=port,
+                user=username,
+                catalog='hive',
+                schema='default'
+            )
+            
+            logger.debug("Connection established, testing with SELECT 1...")
+            
+            # Test the connection
             cur = conn.cursor()
             cur.execute('SELECT 1')
-            _ = cur.fetchone()
+            result = cur.fetchone()
             cur.close()
             conn.close()
             
@@ -37,8 +56,8 @@ def wait_for_trino(host, port, max_attempts=30):
     logger.error(f"Trino failed to become ready after {max_attempts} attempts")
     return False
 
-def execute_ddl_file(ddl_file_path, host='trino-cluster-trino', port=8080):
-    """Execute DDL statements from file."""
+def execute_ddl_file(ddl_file_path, host='trino-coordinator', port=8080):
+    """Execute DDL statements from file"""
     logger = logging.getLogger(__name__)
     
     logger.info(f"Starting DDL execution from: {ddl_file_path}")
@@ -77,11 +96,14 @@ def execute_ddl_file(ddl_file_path, host='trino-cluster-trino', port=8080):
     logger.info("DDL connection established")
     
     cur = conn.cursor()
-    executed, failed = 0, 0
-
-    for i, stmt in enumerate(statements, 1):
-        if stmt.startswith('--') or not stmt:
+    executed_count = 0
+    failed_count = 0
+    
+    for i, statement in enumerate(statements, 1):
+        # Skip comments and empty lines
+        if statement.startswith('--') or not statement.strip():
             continue
+            
         try:
             logger.info(f"[{i}/{len(statements)}] Executing: {statement[:100]}{'...' if len(statement) > 100 else ''}")
             cur.execute(statement)
@@ -124,7 +146,7 @@ Examples:
     
     parser.add_argument(
         '--host', 
-        default=os.getenv('TRINO_HOST', 'trino-cluster-trino'),
+        default=os.getenv('TRINO_HOST', 'trino-coordinator'),
         help='Trino coordinator hostname (default: trino-coordinator or TRINO_HOST env var)'
     )
     
