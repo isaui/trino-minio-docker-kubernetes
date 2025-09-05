@@ -1,6 +1,8 @@
 # Environment files (contain secrets/sensitive data)
 .env
 
+installer/
+
 # Output and generated files
 output/
 logs/
