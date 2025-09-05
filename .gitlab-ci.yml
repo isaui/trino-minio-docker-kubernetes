@@ -27,7 +27,7 @@ build_image:
 deploy:kubernetes:
   stage: deploy
   image:
-    name: bitnami/kubectl:latest
+    name: alpine/kubectl
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy-kubernetes"'
   before_script:
