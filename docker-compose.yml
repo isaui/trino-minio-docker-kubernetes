@@ -25,6 +25,7 @@ services:
       - ./docker-vol/letsencrypt:/letsencrypt
     networks:
       - trino-network
+      
   trino-init:
     build:
       context: .
