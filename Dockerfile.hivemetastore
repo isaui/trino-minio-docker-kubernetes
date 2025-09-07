@@ -3,7 +3,7 @@ FROM openjdk:8-jre-slim-bullseye
 WORKDIR /opt
 
 # Environment variables - these rarely change
-ENV HADOOP_VERSION=3.4.1
+ENV HADOOP_VERSION=3.2.0
 ENV METASTORE_VERSION=3.0.0
 ENV HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
 ENV HIVE_HOME=/opt/apache-hive-metastore-${METASTORE_VERSION}-bin
@@ -15,44 +15,44 @@ ENV METASTORE_CONFIG_PATH=/opt/apache-hive-metastore-3.0.0-bin/conf/metastore-si
 RUN apt-get update && apt-get install -y netcat curl python3 python3-pip dos2unix
 
 # Copy and extract all dependencies in single layer - more efficient and removes installer after use
-COPY installer/ installer/
+COPY installer/ /tmp/installer/
 
 # Validate all required files exist with helpful error messages
 RUN echo "Validating cached dependencies..." && \
-    if [ ! -f "/installer/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz" ]; then \
+    if [ ! -f "/tmp/installer/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz" ]; then \
         echo "ERROR: hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz not found!"; \
         echo "Please run: ./scripts/download-executables.sh"; \
         exit 1; \
     fi && \
-    if [ ! -f "/installer/hadoop-${HADOOP_VERSION}.tar.gz" ]; then \
+    if [ ! -f "/tmp/installer/hadoop-${HADOOP_VERSION}.tar.gz" ]; then \
         echo "ERROR: hadoop-${HADOOP_VERSION}.tar.gz not found!"; \
         echo "Please run: ./scripts/download-executables.sh"; \
         exit 1; \
     fi && \
-    if [ ! -f "/installer/mysql-connector-java-8.0.19.tar.gz" ]; then \
+    if [ ! -f "/tmp/installer/mysql-connector-java-8.0.19.tar.gz" ]; then \
         echo "ERROR: mysql-connector-java-8.0.19.tar.gz not found!"; \
         echo "Please run: ./scripts/download-executables.sh"; \
         exit 1; \
     fi && \
-    if [ ! -f "/installer/postgresql-42.4.0.jar" ]; then \
+    if [ ! -f "/tmp/installer/postgresql-42.4.0.jar" ]; then \
         echo "ERROR: postgresql-42.4.0.jar not found!"; \
         echo "Please run: ./scripts/download-executables.sh"; \
         exit 1; \
     fi && \
-    if [ ! -f "/installer/hive-exec-${METASTORE_VERSION}.jar" ]; then \
+    if [ ! -f "/tmp/installer/hive-exec-${METASTORE_VERSION}.jar" ]; then \
         echo "ERROR: hive-exec-${METASTORE_VERSION}.jar not found!"; \
         echo "Please run: ./scripts/download-executables.sh"; \
         exit 1; \
     fi && \
-    echo "✅ All required dependencies found in installer/ directory"
+    echo "All required dependencies found in installer/ directory"
 
-RUN tar zxf installer/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz && \
-    tar zxf installer/hadoop-${HADOOP_VERSION}.tar.gz && \
-    tar zxf installer/mysql-connector-java-8.0.19.tar.gz && \
+RUN tar zxf /tmp/installer/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz && \
+    tar zxf /tmp/installer/hadoop-${HADOOP_VERSION}.tar.gz && \
+    tar zxf /tmp/installer/mysql-connector-java-8.0.19.tar.gz && \
     cp mysql-connector-java-8.0.19/mysql-connector-java-8.0.19.jar ${HIVE_HOME}/lib/ && \
-    cp installer/postgresql-42.4.0.jar ${HIVE_HOME}/lib/ && \
-    cp installer/hive-exec-${METASTORE_VERSION}.jar ${HIVE_HOME}/lib/ && \
-    rm -rf installer/ && \
+    cp /tmp/installer/postgresql-42.4.0.jar ${HIVE_HOME}/lib/ && \
+    cp /tmp/installer/hive-exec-${METASTORE_VERSION}.jar ${HIVE_HOME}/lib/ && \
+    rm -rf /tmp/installer/ && \
     rm -f hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz && \
     rm -f hadoop-${HADOOP_VERSION}.tar.gz && \
     rm -f mysql-connector-java-8.0.19.tar.gz && \
