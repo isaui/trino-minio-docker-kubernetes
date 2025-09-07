@@ -1,6 +1,10 @@
 # Environment files (contain secrets/sensitive data)
 .env
 
+.venv/
+installer/
+scripts/trino-ddl.sql
+
 # Output and generated files
 output/
 logs/

@@ -3,14 +3,12 @@ services:
     container_name: traefik
     image: traefik:v3.3
     command:
-      - --api.insecure=true
+      - --api.insecure=false
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --accesslog=true
-      - --entryPoints.web.address=:80
-      - --entryPoints.websecure.address=:443
+      - --entryPoints.websecure.address=:443     
     ports:
-      - "80:80"
       - "443:443"
       - "8081:8080"  # Traefik dashboard
     depends_on:
@@ -21,10 +19,11 @@ services:
       trino-coordinator:
         condition: service_healthy
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./docker-vol/letsencrypt:/letsencrypt
     networks:
       - trino-network
+      
   trino-init:
     build:
       context: .
@@ -40,8 +39,8 @@ services:
   trino-coordinator:
     image: 'trinodb/trino:latest'
     hostname: trino-coordinator
-    ports:
-      - '8085:8080'
+    # ports:
+    #   - '8085:8080'
     env_file:
       - .env
     volumes:
@@ -78,8 +77,8 @@ services:
   postgres:
     image: 'postgres:16'
     hostname: postgres
-    ports:
-      - '5455:5432'
+    # ports:
+    #   - '5455:5432'
     env_file:
       - .env
     networks:
