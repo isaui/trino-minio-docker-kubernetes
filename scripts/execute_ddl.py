@@ -56,7 +56,7 @@ def wait_for_trino(host, port, max_attempts=30):
     logger.error(f"Trino failed to become ready after {max_attempts} attempts")
     return False
 
-def execute_ddl_file(ddl_file_path, host='trino-coordinator', port=8080):
+def execute_ddl_file(ddl_file_path, host='trino-cluster-trino', port=8080):
     """Execute DDL statements from file"""
     logger = logging.getLogger(__name__)
     
@@ -136,7 +136,7 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Use defaults (trino-coordinator:8080, /output/trino-ddl.sql)
+  # Use defaults (trino-cluster-trino:8080, /output/trino-ddl.sql)
   python execute_ddl.py
   
   # Specify custom host and file
@@ -146,8 +146,8 @@ Examples:
     
     parser.add_argument(
         '--host', 
-        default=os.getenv('TRINO_HOST', 'trino-coordinator'),
-        help='Trino coordinator hostname (default: trino-coordinator or TRINO_HOST env var)'
+        default=os.getenv('TRINO_HOST', 'trino-cluster-trino'),
+        help='Trino coordinator hostname (default: trino-cluster-trino or TRINO_HOST env var)'
     )
     
     parser.add_argument(
