@@ -82,6 +82,8 @@ services:
       - '5455:5432'
     env_file:
       - .env
+    volumes:
+      - ./scripts/init-postgres.sh:/docker-entrypoint-initdb.d/init-postgres.sh
     networks:
       - trino-network
 
@@ -96,6 +98,29 @@ services:
       - .env
     environment:
       METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
+      ENVIRONMENT: production
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9083"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - trino-network
+
+  hive-metastore-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile.hivemetastore
+    hostname: hive-metastore-staging
+    ports:
+      - '${METASTORE_STAGING_PORT:-9084}:9083' # Different port for staging
+    env_file:
+      - .env
+    environment:
+      METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
+      ENVIRONMENT: staging
     depends_on:
       - postgres
     healthcheck:
@@ -119,6 +144,8 @@ services:
       postgres:
         condition: service_started
       hive-metastore:
+        condition: service_started
+      hive-metastore-staging:
         condition: service_started
       trino-coordinator:
         condition: service_healthy

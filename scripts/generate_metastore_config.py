@@ -10,15 +10,22 @@ def generate_metastore_config():
     minio_access_key = os.getenv('MINIO_ACCESS_KEY')
     minio_secret_key = os.getenv('MINIO_SECRET_KEY')
     minio_warehouse_bucket = os.getenv('MINIO_WAREHOUSE_BUCKET', 'warehouse')
+    minio_staging_bucket = os.getenv('MINIO_STAGING_BUCKET', 'staging-warehouse')
     minio_ssl_enabled = os.getenv('MINIO_SSL_ENABLED', 'false')
     
     # PostgreSQL configuration
     postgres_host = os.getenv('POSTGRES_HOST')
     postgres_port = os.getenv('POSTGRES_PORT')
-    postgres_db = os.getenv('POSTGRES_DB')
     postgres_user = os.getenv('POSTGRES_USER')
     postgres_password = os.getenv('POSTGRES_PASSWORD')
     metastore_port = os.getenv('METASTORE_PORT', '9083')
+    
+    # Environment-specific database naming to prevent schema mixing
+    environment = os.getenv('ENVIRONMENT', 'production')
+    if environment == 'staging':
+        postgres_db = 'metastore_staging'
+    else:
+        postgres_db = 'metastore'
     
     # Validate required variables
     if not minio_endpoint:
@@ -84,13 +91,7 @@ def generate_metastore_config():
         <value>false</value>
     </property>
 
-    <!-- Warehouse location -->
-    <property>
-        <name>hive.metastore.warehouse.dir</name>
-        <value>s3a://{minio_warehouse_bucket}/</value>
-    </property>
-    
-    <!-- S3 Configuration -->
+    <!-- S3 Configuration - Global credentials for all buckets -->
     <property>
         <name>fs.s3a.access.key</name>
         <value>{minio_access_key}</value>
@@ -110,6 +111,12 @@ def generate_metastore_config():
     <property>
         <name>fs.s3a.connection.ssl.enabled</name>
         <value>{minio_ssl_enabled}</value>
+    </property>
+
+    <!-- Default warehouse directory - prevents local filesystem fallback -->
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>s3a://{minio_warehouse_bucket}/user/hive/warehouse</value>
     </property>
 
 </configuration>
@@ -133,6 +140,7 @@ def generate_metastore_config():
     
     print(f"MINIO_ENDPOINT={minio_endpoint}")
     print(f"MINIO_WAREHOUSE_BUCKET={minio_warehouse_bucket}")
+    print(f"MINIO_STAGING_BUCKET={minio_staging_bucket}")
     print(f"MINIO_SSL_ENABLED={minio_ssl_enabled}")
     
     # Show first few lines of generated config for debugging

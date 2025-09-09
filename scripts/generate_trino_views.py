@@ -356,7 +356,7 @@ def generate_trino_ddl(output_file=None):
             "-- Run this script in Trino CLI after connecting to hive catalog",
             "",
             "-- Use hive catalog",
-            "USE hive.default;",
+            "USE \"dtd-dw\".default;",
             ""
         ]
         
@@ -397,8 +397,8 @@ def generate_trino_ddl(output_file=None):
             schema_ddl = ["-- Create schemas"]
             for schema in sorted(schemas):
                 schema_ddl.extend([
-                    f"DROP SCHEMA IF EXISTS hive.{schema} CASCADE;",
-                    f"CREATE SCHEMA hive.{schema};",
+                    f"DROP SCHEMA IF EXISTS \"dtd-dw\".{schema} CASCADE;",
+                    f"CREATE SCHEMA \"dtd-dw\".{schema};",
                     ""
                 ])
             
@@ -415,7 +415,7 @@ def generate_trino_ddl(output_file=None):
         
         for schema in sorted(schemas):
             ddl_lines.extend([
-                f"SHOW TABLES FROM hive.{schema};",
+                f"SHOW TABLES FROM \"dtd-dw\".{schema};",
                 ""
             ])
         
