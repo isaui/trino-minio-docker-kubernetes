@@ -3,6 +3,16 @@ trino + hive + minio with postgres in docker compose
 
 
 
+# Refresh tables
+
+```
+. .venv/bin/activate
+cd scripts
+python generate_trino_views.py 
+python execute_ddl.py --file ./trino-ddl.sql 
+```
+
+
 
 
 
