@@ -3,7 +3,7 @@
 echo "Starting DDL generation seed container..."
 
 # Set default values for environment variables
-TRINO_HOST=${TRINO_HOST:-trino-coordinator}
+TRINO_HOST=${TRINO_HOST:-trino-cluster-trino}
 TRINO_PORT=8080
 
 # Construct Trino URL

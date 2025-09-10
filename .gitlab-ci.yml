@@ -11,7 +11,7 @@ build_image:
   stage: build
   image: docker:20.10.16
   rules:
-    - if: '$CI_COMMIT_BRANCH == "deploy-kubernetes"'
+    - if: '$CI_COMMIT_BRANCH == "feat/fix-multiple-bucket"'
   variables:
     DOCKER_TLS_CERTDIR: ""
   services:
@@ -29,7 +29,7 @@ deploy:kubernetes:
   image:
     name: khpahmil/kubectl:latest
   rules:
-    - if: '$CI_COMMIT_BRANCH == "deploy-kubernetes"'
+    - if: '$CI_COMMIT_BRANCH == "feat/fix-multiple-bucket"'
   before_script:
     - echo "Start deploying ..."
   script:
