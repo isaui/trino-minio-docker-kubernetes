@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Execute DDL Script in Trino
+Execute DDL Script in Remote Trino
 
-Connects to Trino and executes the generated DDL statements
+Connects to remote Trino server and executes the generated DDL statements
 """
 
 import os
@@ -11,28 +11,31 @@ import time
 import argparse
 from dotenv import load_dotenv
 from trino.dbapi import connect
+from trino.auth import BasicAuthentication
 
-def wait_for_trino(host, port, max_attempts=30):
+
+def wait_for_trino(host, port, username, password, max_attempts=30):
     """Wait for Trino to be ready"""
     logger = logging.getLogger(__name__)
-    username = os.getenv('TRINO_USERNAME', 'admin')
     
-    logger.info(f"Waiting for Trino at {host}:{port} (user: {username})...")
+    logger.info(f"Waiting for Remote Trino at {host}:{port} (user: {username})...")
     
     for attempt in range(max_attempts):
         try:
-            logger.debug(f"Attempt {attempt + 1}/{max_attempts}: Connecting to Trino...")
+            logger.debug(f"Attempt {attempt + 1}/{max_attempts}: Connecting to Remote Trino...")
             
-            # Try to connect to Trino without auth (HTTP mode)
+            # Connect to remote Trino with HTTPS and authentication
             conn = connect(
                 host=host,
                 port=port,
-                user=username,
+                auth=BasicAuthentication(username, password),
                 catalog='dtd-dw',
-                schema='default'
+                schema='default',
+                http_scheme='https' if port == 443 else 'http',
+                verify=True  # Disable SSL verification if needed
             )
             
-            logger.debug("Connection established, testing with SELECT 1...")
+            logger.debug("Remote connection established, testing with SELECT 1...")
             
             # Test the connection
             cur = conn.cursor()
@@ -42,30 +45,30 @@ def wait_for_trino(host, port, max_attempts=30):
             conn.close()
             
             if result:
-                logger.info(f"Trino connection successful after {attempt + 1} attempts!")
+                logger.info(f"Remote Trino connection successful after {attempt + 1} attempts!")
                 return True
                 
         except Exception as e:
-            logger.warning(f"Attempt {attempt + 1}/{max_attempts}: Trino not ready - {e}")
+            logger.warning(f"Attempt {attempt + 1}/{max_attempts}: Remote Trino not ready - {e}")
             if attempt < max_attempts - 1:
                 logger.info(f"Waiting 10 seconds before retry...")
                 time.sleep(10)
             else:
                 logger.error(f"Final attempt failed: {e}")
     
-    logger.error(f"Trino failed to become ready after {max_attempts} attempts")
+    logger.error(f"Remote Trino failed to become ready after {max_attempts} attempts")
     return False
 
-def execute_ddl_file(ddl_file_path, host='trino-cluster-trino', port=8080):
+def execute_ddl_file(ddl_file_path, host='trino72.pusilkom.com', port=443, username='admin', password='admin123'):
     """Execute DDL statements from file"""
     logger = logging.getLogger(__name__)
     
     logger.info(f"Starting DDL execution from: {ddl_file_path}")
-    logger.info(f"Target Trino: {host}:{port}")
+    logger.info(f"Target Remote Trino: {host}:{port}")
     
     # Wait for Trino to be ready
-    if not wait_for_trino(host, port):
-        raise Exception("Trino is not ready after maximum attempts")
+    if not wait_for_trino(host, port, username, password):
+        raise Exception("Remote Trino is not ready after maximum attempts")
     
     # Read DDL file
     logger.info(f"Reading DDL file: {ddl_file_path}")
@@ -82,18 +85,18 @@ def execute_ddl_file(ddl_file_path, host='trino-cluster-trino', port=8080):
     
     logger.info(f"Found {len(statements)} DDL statements to execute")
     
-    # Connect to Trino without auth (HTTP mode)
-    username = os.getenv('TRINO_USERNAME', 'admin')
-    
-    logger.info(f"Connecting to Trino for DDL execution (user: {username})...")
+    # Connect to remote Trino with HTTPS and authentication
+    logger.info(f"Connecting to Remote Trino for DDL execution (user: {username})...")
     conn = connect(
         host=host,
         port=port,
-        user=username,
+        auth=BasicAuthentication(username, password),
         catalog='dtd-dw',
-        schema='default'
+        schema='default',
+        http_scheme='https' if port == 443 else 'http',
+        verify=True  # Disable SSL verification if needed
     )
-    logger.info("DDL connection established")
+    logger.info("Remote DDL connection established")
     
     cur = conn.cursor()
     executed_count = 0
@@ -118,7 +121,7 @@ def execute_ddl_file(ddl_file_path, host='trino-cluster-trino', port=8080):
     cur.close()
     conn.close()
     
-    logger.info(f"DDL execution completed: {executed_count} successful, {failed_count} failed")
+    logger.info(f"Remote DDL execution completed: {executed_count} successful, {failed_count} failed")
     if failed_count == 0:
         logger.info("All statements executed successfully!")
     else:
@@ -132,35 +135,47 @@ if __name__ == "__main__":
     
     # Set up argument parser
     parser = argparse.ArgumentParser(
-        description='Execute DDL statements in Trino',
+        description='Execute DDL statements in Remote Trino',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Use defaults (trino-cluster-trino:8080, /output/trino-ddl.sql)
-  python execute_ddl.py
+  # Use defaults from environment variables
+  python execute_ddl_remote.py
   
   # Specify custom host and file
-  python execute_ddl.py --host localhost --port 8080 --file /path/to/ddl.sql
+  python execute_ddl_remote.py --host trino72.pusilkom.com --port 443 --file /path/to/ddl.sql
         """
     )
     
     parser.add_argument(
         '--host', 
-        default=os.getenv('TRINO_HOST', 'trino-cluster-trino'),
-        help='Trino coordinator hostname (default: trino-cluster-trino or TRINO_HOST env var)'
+        default=os.getenv('REMOTE_TRINO_HOST', 'trino72.pusilkom.com'),
+        help='Remote Trino coordinator hostname (default: trino72.pusilkom.com or REMOTE_TRINO_HOST env var)'
     )
     
     parser.add_argument(
         '--port', 
         type=int,
-        default=int(os.getenv('TRINO_PORT', '8080')),
-        help='Trino coordinator port (default: 8080 or TRINO_PORT env var)'
+        default=int(os.getenv('REMOTE_TRINO_PORT', '443')),
+        help='Remote Trino coordinator port (default: 443 or REMOTE_TRINO_PORT env var)'
+    )
+    
+    parser.add_argument(
+        '--username', 
+        default=os.getenv('REMOTE_TRINO_USERNAME', 'admin'),
+        help='Remote Trino username (default: admin or REMOTE_TRINO_USERNAME env var)'
+    )
+    
+    parser.add_argument(
+        '--password', 
+        default=os.getenv('REMOTE_TRINO_PASSWORD', 'admin123'),
+        help='Remote Trino password (default: admin123 or REMOTE_TRINO_PASSWORD env var)'
     )
     
     parser.add_argument(
         '--file', 
-        default=os.getenv('DDL_FILE', '/output/trino-ddl.sql'),
-        help='DDL file path (default: /output/trino-ddl.sql or DDL_FILE env var)'
+        default=os.getenv('DDL_FILE', './trino-ddl.sql'),
+        help='DDL file path (default: ./trino-ddl.sql or DDL_FILE env var)'
     )
     
     parser.add_argument(
@@ -181,13 +196,14 @@ Examples:
     logger = logging.getLogger(__name__)
     
     try:
-        logger.info(f"DDL Execution Parameters:")
+        logger.info(f"Remote DDL Execution Parameters:")
         logger.info(f"   Host: {args.host}")
         logger.info(f"   Port: {args.port}")
+        logger.info(f"   Username: {args.username}")
         logger.info(f"   File: {args.file}")
         
         # Execute DDL
-        success, failed = execute_ddl_file(args.file, args.host, args.port)
+        success, failed = execute_ddl_file(args.file, args.host, args.port, args.username, args.password)
         
         if failed == 0:
             logger.info("All DDL statements executed successfully!")
@@ -196,5 +212,5 @@ Examples:
             exit(0)
             
     except Exception as e:
-        logger.error(f"DDL execution failed: {e}")
+        logger.error(f"Remote DDL execution failed: {e}")
         exit(1)

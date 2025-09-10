@@ -3,8 +3,8 @@ FROM openjdk:8-jre-slim-bullseye
 WORKDIR /opt
 
 # Environment variables - these rarely change
-ENV HADOOP_VERSION=3.4.1
-ENV METASTORE_VERSION=3.0.0
+ENV HADOOP_VERSION=${HADOOP_VERSION:-3.4.1}
+ENV METASTORE_VERSION=${METASTORE_VERSION:-3.0.0}
 ENV HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
 ENV HIVE_HOME=/opt/apache-hive-metastore-${METASTORE_VERSION}-bin
 

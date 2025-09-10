@@ -26,7 +26,7 @@ download_if_missing \
 
 # Download Hadoop
 download_if_missing \
-  "https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz" \
+  "https://downloads.apache.org/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz" \
   "$INSTALLER_DIR/hadoop-${HADOOP_VERSION}.tar.gz"
 
 # Download MySQL Connector
