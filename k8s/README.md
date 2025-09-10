@@ -22,5 +22,5 @@ kubectl apply -f trino-ddl-seed.yaml
 6. Verifikasi query di Trino.
 
 untuk restart deployment:
-kubectl -n dtd-datavisualization rollout restart deploy/trino-cluster-trino-coordinator
-kubectl -n dtd-datavisualization rollout status deploy/trino-cluster-trino-coordinator
+kubectl -n dtd-datavisualization rollout restart deploy/trino-cluster-trino-cluster-trino
+kubectl -n dtd-datavisualization rollout status deploy/trino-cluster-trino-cluster-trino

@@ -16,7 +16,7 @@ services:
         condition: service_started
       hive-metastore:
         condition: service_started
-      trino-coordinator:
+      trino-cluster-trino:
         condition: service_healthy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -36,11 +36,11 @@ services:
     networks:
       - trino-network
 
-  trino-coordinator:
+  trino-cluster-trino:
     image: 'trinodb/trino:latest'
-    hostname: trino-coordinator
-    # ports:
-    #   - '8085:8080'
+    hostname: trino-cluster-trino
+    ports:
+      - '8085:8080'
     env_file:
       - .env
     volumes:
@@ -146,7 +146,7 @@ services:
         condition: service_started
       hive-metastore-staging:
         condition: service_started
-      trino-coordinator:
+      trino-cluster-trino:
         condition: service_healthy
     networks:
       - trino-network

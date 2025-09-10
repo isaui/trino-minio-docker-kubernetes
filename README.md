@@ -51,7 +51,7 @@ Step 3 - Create Bucket in MinIO
 
 Step 4 - Into the runnung trino container
 ```bash
-docker container exec -it docker-compose-trino-coordinator-1 trino
+docker container exec -it docker-compose-trino-cluster-trino-1 trino
 ```
 Step 5 -  Create schema and table and play around with trino, you can see the trino dashboard from localhost:8080.
 ```sql

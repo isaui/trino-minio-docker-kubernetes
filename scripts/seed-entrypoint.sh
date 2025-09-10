@@ -4,6 +4,7 @@ echo "Starting DDL generation seed container..."
 
 # Wait for Trino to be healthy
 echo "Waiting for Trino coordinator to be ready..."
+
 for i in $(seq 1 30); do
     if wget --spider -q http://trino-cluster-trino:8080/v1/info 2>/dev/null; then
         echo "Trino coordinator is ready!"
