@@ -4,6 +4,7 @@
 .venv/
 installer/
 scripts/trino-ddl.sql
+scripts/trino-ddl-staging.sql
 
 # Output and generated files
 output/
@@ -41,3 +42,12 @@ Thumbs.db
 # Backup files
 *.bak
 *.backup
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+airflow/__pycache__/
+dags/__pycache__/

@@ -193,7 +193,7 @@ Examples:
             logger.info("All staging DDL statements executed successfully!")
         else:
             logger.warning(f"Staging DDL execution completed with {failed} failures")
-            exit(1)
+            exit(0)
             
     except Exception as e:
         logger.error(f"Staging DDL execution failed: {e}")

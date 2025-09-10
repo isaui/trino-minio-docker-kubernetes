@@ -2,11 +2,20 @@
 
 echo "Starting DDL generation seed container..."
 
+# Set default values for environment variables
+TRINO_HOST=${TRINO_HOST:-trino-coordinator}
+TRINO_PORT=8080
+
+# Construct Trino URL
+TRINO_URL="http://${TRINO_HOST}:${TRINO_PORT}"
+
+echo "Using Trino endpoint: ${TRINO_URL}"
+
 # Wait for Trino to be healthy
 echo "Waiting for Trino coordinator to be ready..."
 
 for i in $(seq 1 30); do
-    if wget --spider -q http://trino-cluster-trino:8080/v1/info 2>/dev/null; then
+    if wget --spider -q ${TRINO_URL}/v1/info 2>/dev/null; then
         echo "Trino coordinator is ready!"
         break
     fi
@@ -15,7 +24,7 @@ for i in $(seq 1 30); do
 done
 
 # Check if Trino is ready
-if ! wget --spider -q http://trino-cluster-trino:8080/v1/info 2>/dev/null; then
+if ! wget --spider -q ${TRINO_URL}/v1/info 2>/dev/null; then
     echo "ERROR: Trino coordinator failed to become ready within 5 minutes"
     exit 1
 fi
@@ -43,7 +52,7 @@ if [ -f "trino-ddl.sql" ]; then
     
     # Execute DDL in Trino
     echo "Executing DDL statements in Trino..."
-    python3 execute_ddl.py
+    python3 execute_ddl.py --port 8080
     
     if [ $? -eq 0 ]; then
         echo "DDL execution completed successfully!"
@@ -69,7 +78,7 @@ if [ -f "trino-ddl-staging.sql" ]; then
     
     # Execute DDL in Trino
     echo "Executing staging DDL statements in Trino..."
-    python3 execute_ddl_staging.py
+    python3 execute_ddl_staging.py --port 8080
     
     if [ $? -eq 0 ]; then
         echo "Staging DDL execution completed successfully!"
