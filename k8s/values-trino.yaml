@@ -12,6 +12,15 @@ additionalCatalogs:
     s3.aws-secret-key=${ENV:MINIO_SECRET_KEY}
     s3.region=us-east-1
     # (tidak perlu s3.ssl.enabled; pakai http/https di s3.endpoint saja)
+  hive_staging: |-
+    connector.name=hive
+    hive.metastore.uri=thrift://hive-metastore-staging.dtd-datavisualization.svc.cluster.local:${ENV:METASTORE_STAGING_PORT}
+    fs.native-s3.enabled=true
+    s3.endpoint=${ENV:MINIO_ENDPOINT}
+    s3.path-style-access=true
+    s3.aws-access-key=${ENV:MINIO_ACCESS_KEY}
+    s3.aws-secret-key=${ENV:MINIO_SECRET_KEY}
+    s3.region=us-east-1
 
 auth:
   passwordAuthSecret: "trino-password-db"
@@ -35,6 +44,8 @@ server:
       valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_SSL_ENABLED } }
     - name: METASTORE_PORT
       valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_PORT } }
+    - name: METASTORE_STAGING_PORT
+      valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_STAGING_PORT } }
     - name: MINIO_ACCESS_KEY
       valueFrom: { secretKeyRef: { name: minio-cred, key: accesskey } }
     - name: MINIO_SECRET_KEY
@@ -51,6 +62,8 @@ coordinator:
       valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_SSL_ENABLED } }
     - name: METASTORE_PORT
       valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_PORT } }
+    - name: METASTORE_STAGING_PORT
+      valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_STAGING_PORT } }
     - name: MINIO_ACCESS_KEY
       valueFrom: { secretKeyRef: { name: minio-cred, key: accesskey } }
     - name: MINIO_SECRET_KEY
@@ -67,6 +80,8 @@ worker:
       valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_SSL_ENABLED } }
     - name: METASTORE_PORT
       valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_PORT } }
+    - name: METASTORE_STAGING_PORT
+      valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_STAGING_PORT } }
     - name: MINIO_ACCESS_KEY
       valueFrom: { secretKeyRef: { name: minio-cred, key: accesskey } }
     - name: MINIO_SECRET_KEY
