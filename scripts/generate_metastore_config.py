@@ -18,14 +18,16 @@ def generate_metastore_config():
     postgres_port = os.getenv('POSTGRES_PORT')
     postgres_user = os.getenv('POSTGRES_USER')
     postgres_password = os.getenv('POSTGRES_PASSWORD')
-    metastore_port = os.getenv('METASTORE_PORT', '9083')
+    metastore_port = 9083 # local port container
     
     # Environment-specific database naming to prevent schema mixing
     environment = os.getenv('ENVIRONMENT', 'production')
     if environment == 'staging':
         postgres_db = 'metastore_staging'
+        metastore_service = 'hive-metastore-staging'
     else:
         postgres_db = 'metastore'
+        metastore_service = 'hive-metastore'
     
     # Validate required variables
     if not minio_endpoint:
@@ -58,11 +60,11 @@ def generate_metastore_config():
     <!-- CRITICAL: Forces remote metastore mode, prevents Derby fallback -->
     <property>
         <name>hive.metastore.uris</name>
-        <value>thrift://hive-metastore:{metastore_port}</value>
+        <value>thrift://{metastore_service}:{metastore_port}</value>
     </property>
     <property>
         <name>metastore.thrift.uris</name>
-        <value>thrift://hive-metastore:{metastore_port}</value>
+        <value>thrift://{metastore_service}:{metastore_port}</value>
     </property>
     <property>
         <name>hive.metastore.local</name>

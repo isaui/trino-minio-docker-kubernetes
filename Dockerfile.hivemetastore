@@ -77,6 +77,5 @@ RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh && chown hive:hive /entry
     chmod +x /opt/scripts/generate_metastore_config.py && chown hive:hive -R /opt/scripts
 
 USER hive
-EXPOSE 9083
 
 ENTRYPOINT ["/entrypoint.sh"]
