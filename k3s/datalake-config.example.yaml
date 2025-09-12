@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-lake-config
+  namespace: dtd-datavisualization
+data:
+  # MinIO Configuration
+  MINIO_ENDPOINT: "http://minio.example.com:9000"
+  MINIO_WAREHOUSE_BUCKET: "warehouse"
+  MINIO_STAGING_BUCKET: "staging-warehouse"
+  MINIO_SSL_ENABLED: "false"
+  
+  # PostgreSQL Configuration
+  POSTGRES_HOST: "postgres.example.com"
+  POSTGRES_PORT: "5432"
+  
+  # Hive Metastore Service Ports
+  METASTORE_PORT: "9083"
+  METASTORE_STAGING_PORT: "9084"

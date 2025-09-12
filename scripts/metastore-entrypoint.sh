@@ -20,9 +20,13 @@ while ! nc -z ${METASTORE_DB_HOSTNAME} 5432; do
 done
 echo "PostgreSQL is ready"
 
-# Initialize schema
-echo "Initializing Hive Metastore schema..."
-/opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres -initSchema
+# # Force initialize schema (ignore errors for existing schemas)
+# echo "Force initializing Hive Metastore schema..."
+# /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres -initSchema || {
+#     echo "Schema already exists or init failed, trying to upgrade/validate..."
+#     /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres -validate || true
+# }
+# echo "Schema initialization completed (forced)"
 
 # Start metastore as Thrift service
 echo "Starting Hive Metastore Thrift service on port 9083..."

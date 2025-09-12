@@ -10,7 +10,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: seed
-          image: IMAGE_NAME:IMAGE_TAG
+          image: localhost:5000/trino-ddl-seed:latest
           envFrom:
             - secretRef: { name: trino-auth }
           env:
@@ -19,6 +19,8 @@ spec:
               valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_ENDPOINT } }
             - name: MINIO_WAREHOUSE_BUCKET
               valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_WAREHOUSE_BUCKET } }
+            - name: MINIO_STAGING_WAREHOUSE_BUCKET
+              valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_STAGING_WAREHOUSE_BUCKET } }
             - name: MINIO_ACCESS_KEY
               valueFrom: { secretKeyRef: { name: minio-cred, key: accesskey } }
             - name: MINIO_SECRET_KEY
@@ -30,5 +32,4 @@ spec:
               #until curl -fsS http://$TRINO_HOST:$TRINO_PORT/v1/info >/dev/null; do sleep 5; done
               echo "Seeding..."
               /app/seed-entrypoint.sh
-      imagePullSecrets:
-        - name:  registry-dtd
+      # imagePullSecrets not needed for localhost:5000
