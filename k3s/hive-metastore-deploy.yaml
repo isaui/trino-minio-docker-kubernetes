@@ -67,6 +67,8 @@ spec:
               valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_PORT } }
             - name: ENVIRONMENT
               value: "production"
+            - name: IS_RESUME
+              value: "true"
           readinessProbe: { tcpSocket: { port: 9083 }, initialDelaySeconds: 10, periodSeconds: 10 }
           livenessProbe:  { tcpSocket: { port: 9083 }, initialDelaySeconds: 30, periodSeconds: 30 }
           resources:
@@ -88,7 +90,7 @@ spec:
     spec:
       containers:
         - name: metastore-staging
-          image: localhost:5000/hivemetastore:latest
+          image: localhost:5000/hive-metastore:latest
           ports: [{ containerPort: 9083, name: thrift }]
           env:
             # ---- MinIO (dipakai oleh generate_metastore_config.py) ----
@@ -121,6 +123,8 @@ spec:
               valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_STAGING_PORT } }
             - name: ENVIRONMENT
               value: "staging"
+            - name: IS_RESUME
+              value: "true"
           readinessProbe: { tcpSocket: { port: 9083 }, initialDelaySeconds: 10, periodSeconds: 10 }
           livenessProbe:  { tcpSocket: { port: 9083 }, initialDelaySeconds: 30, periodSeconds: 30 }
           resources:
