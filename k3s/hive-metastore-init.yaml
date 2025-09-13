@@ -26,13 +26,13 @@ spec:
               
               # Initialize production metastore database
               echo "Creating schema in 'metastore' database..."
-              schematool -dbType postgres \
+              /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres \
                 -driver org.postgresql.Driver \
                 -userName "$METASTORE_DB_USER" \
                 -passWord "$METASTORE_DB_PASSWORD" \
                 -url "jdbc:postgresql://$METASTORE_DB_HOSTNAME:$METASTORE_DB_PORT/metastore" \
                 -validate || \
-              schematool -dbType postgres \
+              /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres \
                 -driver org.postgresql.Driver \
                 -userName "$METASTORE_DB_USER" \
                 -passWord "$METASTORE_DB_PASSWORD" \
@@ -41,13 +41,13 @@ spec:
               
               # Initialize staging metastore database  
               echo "Creating schema in 'metastore_staging' database..."
-              schematool -dbType postgres \
+              /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres \
                 -driver org.postgresql.Driver \
                 -userName "$METASTORE_DB_USER" \
                 -passWord "$METASTORE_DB_PASSWORD" \
                 -url "jdbc:postgresql://$METASTORE_DB_HOSTNAME:$METASTORE_DB_PORT/metastore_staging" \
                 -validate || \
-              schematool -dbType postgres \
+              /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres \
                 -driver org.postgresql.Driver \
                 -userName "$METASTORE_DB_USER" \
                 -passWord "$METASTORE_DB_PASSWORD" \
