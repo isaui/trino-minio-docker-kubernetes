@@ -10,8 +10,8 @@ data:
   MINIO_STAGING_BUCKET: "staging-warehouse"
   MINIO_SSL_ENABLED: "false"
   
-  # PostgreSQL database configuration
-  POSTGRES_HOST: "postgres.example.com"
+  # PostgreSQL database configuration  
+  POSTGRES_HOST: "postgres"  # Service name dari postgres-deploy.yaml
   POSTGRES_PORT: "5432" 
   METASTORE_PORT: "9083"
   METASTORE_STAGING_PORT: "9084"
