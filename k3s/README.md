@@ -87,7 +87,6 @@ Deploy PostgreSQL dengan 2 databases (metastore + metastore_staging):
 kubectl apply -f postgres-deploy.yaml
 
 # Wait untuk PostgreSQL ready
-kubectl wait --for=condition=available deployment/postgres --timeout=300s
 ```
 
 ### Step 3: Initialize Hive Metastore Schema (Optional)
@@ -96,7 +95,7 @@ Jika PostgreSQL belum ada schema metastore:
 
 ```bash
 kubectl apply -f hive-metastore-init.yaml
-kubectl wait --for=condition=complete job/hive-metastore-init --timeout=300s
+
 ```
 
 ### Step 4: Deploy Hive Metastores
@@ -106,9 +105,7 @@ Deploy both production dan staging metastores:
 ```bash
 kubectl apply -f hive-metastore-deploy.yaml
 
-# Wait untuk metastores ready
-kubectl wait --for=condition=available deployment/hive-metastore --timeout=300s
-kubectl wait --for=condition=available deployment/hive-metastore-staging --timeout=300s
+
 ```
 
 ### Step 5: Configure Trino Values
@@ -131,9 +128,7 @@ Key configurations di `values-trino.yaml`:
 # Install Trino dengan Helm (HARUS specify namespace!)
 helm install trino-cluster trino/trino -f values-trino.yaml -n dtd-datavisualization
 
-# Wait untuk Trino ready  
-kubectl wait --for=condition=available deployment/trino-cluster-trino-coordinator -n dtd-datavisualization --timeout=600s
-kubectl wait --for=condition=available deployment/trino-cluster-trino-worker -n dtd-datavisualization --timeout=600s
+
 ```
 
 ### Step 7: Seed DDL Schemas
@@ -145,7 +140,6 @@ kubectl apply -f trino-ddl-seed.yaml
 
 # Monitor job progress
 kubectl logs -f job/trino-ddl-seed
-kubectl wait --for=condition=complete job/trino-ddl-seed --timeout=600s
 ```
 
 ### Step 8: Enable Trino Worker Autoscaling (Optional)

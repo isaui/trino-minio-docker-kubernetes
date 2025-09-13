@@ -397,8 +397,8 @@ def generate_trino_ddl(output_file=None):
             schema_ddl = ["-- Create schemas"]
             for schema in sorted(schemas):
                 schema_ddl.extend([
-                    f"DROP SCHEMA IF EXISTS \"dtd-dw\".{schema} CASCADE;",
-                    f"CREATE SCHEMA \"dtd-dw\".{schema};",
+                    f"DROP SCHEMA IF EXISTS \"dtd_dw\".{schema} CASCADE;",
+                    f"CREATE SCHEMA \"dtd_dw\".{schema};",
                     ""
                 ])
             
@@ -415,7 +415,7 @@ def generate_trino_ddl(output_file=None):
         
         for schema in sorted(schemas):
             ddl_lines.extend([
-                f"SHOW TABLES FROM \"dtd-dw\".{schema};",
+                f"SHOW TABLES FROM \"dtd_dw\".{schema};",
                 ""
             ])
         

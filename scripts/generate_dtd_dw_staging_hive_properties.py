@@ -11,7 +11,7 @@ def generate_dtd_dw_staging_hive_properties():
     s3_access_key = os.getenv('MINIO_ACCESS_KEY')
     s3_secret_key = os.getenv('MINIO_SECRET_KEY')
     s3_region = os.getenv('MINIO_REGION', 'us-east-1')
-    bucket_name = os.getenv('MINIO_STAGING_WAREHOUSE_BUCKET', 'staging-warehouse')
+    bucket_name = os.getenv('MINIO_STAGING_BUCKET', 'staging-warehouse')
     metastore_uri = os.getenv('HIVE_METASTORE_STAGING_URI', 'thrift://hive-metastore-staging:9083')
     
     # Validate required environment variables

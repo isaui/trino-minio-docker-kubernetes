@@ -316,7 +316,7 @@ def generate_trino_staging_ddl(output_file=None):
     load_dotenv(env_file)
     
     # Get MinIO staging config from environment
-    bucket_name = os.getenv('MINIO_STAGING_WAREHOUSE_BUCKET')
+    bucket_name = os.getenv('MINIO_STAGING_BUCKET')
     endpoint = os.getenv('MINIO_ENDPOINT')
     access_key = os.getenv('MINIO_ACCESS_KEY')
     secret_key = os.getenv('MINIO_SECRET_KEY')
@@ -353,7 +353,7 @@ def generate_trino_staging_ddl(output_file=None):
         ddl_lines = [
             "-- Trino DDL script for Staging Parquet files in MinIO",
             "-- Generated automatically from staging parquet file schemas", 
-            "-- Run this script in Trino CLI after connecting to dtd-dw-staging catalog",
+            "-- Run this script in Trino CLI after connecting to dtd_dw_staging catalog",
             "",
             "-- Use dtd_dw_staging catalog",
             "USE \"dtd_dw_staging\".default;",
@@ -397,8 +397,8 @@ def generate_trino_staging_ddl(output_file=None):
             schema_ddl = ["-- Create schemas"]
             for schema in sorted(schemas):
                 schema_ddl.extend([
-                    f"DROP SCHEMA IF EXISTS \"dtd-dw-staging\".{schema} CASCADE;",
-                    f"CREATE SCHEMA \"dtd-dw-staging\".{schema};",
+                    f"DROP SCHEMA IF EXISTS \"dtd_dw_staging\".{schema} CASCADE;",
+                    f"CREATE SCHEMA \"dtd_dw_staging\".{schema};",
                     ""
                 ])
             
@@ -415,7 +415,7 @@ def generate_trino_staging_ddl(output_file=None):
         
         for schema in sorted(schemas):
             ddl_lines.extend([
-                f"SHOW TABLES FROM \"dtd-dw-staging\".{schema};",
+                f"SHOW TABLES FROM \"dtd_dw_staging\".{schema};",
                 ""
             ])
         
