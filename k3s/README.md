@@ -128,12 +128,12 @@ Key configurations di `values-trino.yaml`:
 ### Step 6: Deploy Trino Cluster
 
 ```bash
-# Install Trino dengan Helm
-helm install trino-cluster trino/trino -f values-trino.yaml
+# Install Trino dengan Helm (HARUS specify namespace!)
+helm install trino-cluster trino/trino -f values-trino.yaml -n dtd-datavisualization
 
 # Wait untuk Trino ready  
-kubectl wait --for=condition=available deployment/trino-cluster-trino-coordinator --timeout=600s
-kubectl wait --for=condition=available deployment/trino-cluster-trino-worker --timeout=600s
+kubectl wait --for=condition=available deployment/trino-cluster-trino-coordinator -n dtd-datavisualization --timeout=600s
+kubectl wait --for=condition=available deployment/trino-cluster-trino-worker -n dtd-datavisualization --timeout=600s
 ```
 
 ### Step 7: Seed DDL Schemas
@@ -172,13 +172,13 @@ kubectl get hpa trino-cluster-worker
 kubectl get pods
 
 # Port forward ke Trino UI
-kubectl port-forward svc/trino-cluster-trino 8080:8080
+kubectl port-forward svc/trino-cluster-trino 8080:8080 -n dtd-datavisualization
 
 # Access Trino Web UI
 # http://localhost:8080 (admin/your-admin-password)
 
 # Test query via CLI
-kubectl exec -it deployment/trino-cluster-trino-coordinator -- trino --server localhost:8080 --user admin
+kubectl exec -it deployment/trino-cluster-trino-coordinator -n dtd-datavisualization -- trino --server localhost:8080 --user admin
 
 # Sample queries:
 # SHOW CATALOGS;
@@ -191,37 +191,37 @@ kubectl exec -it deployment/trino-cluster-trino-coordinator -- trino --server lo
 ### Restart Deployments
 ```bash
 # Restart Trino cluster
-kubectl rollout restart deployment/trino-cluster-trino-coordinator
-kubectl rollout restart deployment/trino-cluster-trino-worker
+kubectl rollout restart deployment/trino-cluster-trino-coordinator -n dtd-datavisualization
+kubectl rollout restart deployment/trino-cluster-trino-worker -n dtd-datavisualization
 
 # Restart metastores
-kubectl rollout restart deployment/hive-metastore
-kubectl rollout restart deployment/hive-metastore-staging
+kubectl rollout restart deployment/hive-metastore -n dtd-datavisualization
+kubectl rollout restart deployment/hive-metastore-staging -n dtd-datavisualization
 
 # Check rollout status
-kubectl rollout status deployment/trino-cluster-trino-coordinator
-kubectl rollout status deployment/hive-metastore
-kubectl rollout status deployment/hive-metastore-staging
+kubectl rollout status deployment/trino-cluster-trino-coordinator -n dtd-datavisualization
+kubectl rollout status deployment/hive-metastore -n dtd-datavisualization
+kubectl rollout status deployment/hive-metastore-staging -n dtd-datavisualization
 ```
 
 ### Upgrade Trino
 ```bash
 # Update Helm chart
 helm repo update
-helm upgrade trino-cluster trino/trino -f values-trino.yaml
+helm upgrade trino-cluster trino/trino -f values-trino.yaml -n dtd-datavisualization
 ```
 
 ### Logs dan Debugging
 ```bash
 # Trino coordinator logs
-kubectl logs -f deployment/trino-cluster-trino-coordinator
+kubectl logs -f deployment/trino-cluster-trino-coordinator -n dtd-datavisualization
 
 # Metastore logs
-kubectl logs -f deployment/hive-metastore
-kubectl logs -f deployment/hive-metastore-staging
+kubectl logs -f deployment/hive-metastore -n dtd-datavisualization
+kubectl logs -f deployment/hive-metastore-staging -n dtd-datavisualization
 
 # DDL seed job logs
-kubectl logs job/trino-ddl-seed
+kubectl logs job/trino-ddl-seed -n dtd-datavisualization
 ```
 
 ## 📊 Service Endpoints
