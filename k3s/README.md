@@ -148,7 +148,24 @@ kubectl logs -f job/trino-ddl-seed
 kubectl wait --for=condition=complete job/trino-ddl-seed --timeout=600s
 ```
 
-### Step 8: Verification
+### Step 8: Enable Trino Worker Autoscaling (Optional)
+
+Deploy HPA untuk auto-scale Trino workers berdasarkan CPU usage:
+
+```bash
+kubectl apply -f trino-hpa.yaml
+
+# Check HPA status
+kubectl get hpa trino-cluster-worker
+```
+
+**HPA Configuration:**
+- **Min replicas**: 3 workers
+- **Max replicas**: 6 workers  
+- **Target**: 70% CPU utilization
+- **Target deployment**: `trino-cluster-trino-worker`
+
+### Step 9: Verification
 
 ```bash
 # Check all pods running
