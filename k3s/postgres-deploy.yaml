@@ -60,7 +60,7 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom: { secretKeyRef: { name: metastore-db, key: password } }
             - name: POSTGRES_DB
-              valueFrom: { configMapKeyRef: { name: data-lake-config, key: POSTGRES_DB } }
+              value: "postgres"  # Default database untuk initial connection
           volumeMounts:
             - name: postgres-init-script
               mountPath: /docker-entrypoint-initdb.d
