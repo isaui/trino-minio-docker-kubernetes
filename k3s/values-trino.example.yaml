@@ -8,6 +8,8 @@ env:
     valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_SSL_ENABLED } }
   - name: METASTORE_PORT
     valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_PORT } }
+  - name: METASTORE_STAGING_PORT
+    valueFrom: { configMapKeyRef: { name: data-lake-config, key: METASTORE_STAGING_PORT } }
   - name: MINIO_ACCESS_KEY
     valueFrom: { secretKeyRef: { name: minio-cred, key: accesskey } }
   - name: MINIO_SECRET_KEY
