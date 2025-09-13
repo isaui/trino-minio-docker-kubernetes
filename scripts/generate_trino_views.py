@@ -356,7 +356,7 @@ def generate_trino_ddl(output_file=None):
             "-- Run this script in Trino CLI after connecting to hive catalog",
             "",
             "-- Use hive catalog",
-            "USE \"dtd-dw\".default;",
+            "USE \"dtd_dw\".default;",
             ""
         ]
         

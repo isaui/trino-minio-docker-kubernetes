@@ -355,8 +355,8 @@ def generate_trino_staging_ddl(output_file=None):
             "-- Generated automatically from staging parquet file schemas", 
             "-- Run this script in Trino CLI after connecting to dtd-dw-staging catalog",
             "",
-            "-- Use dtd-dw-staging catalog",
-            "USE \"dtd-dw-staging\".default;",
+            "-- Use dtd_dw_staging catalog",
+            "USE \"dtd_dw_staging\".default;",
             ""
         ]
         

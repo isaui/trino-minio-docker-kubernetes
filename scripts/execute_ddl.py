@@ -28,7 +28,7 @@ def wait_for_trino(host, port, max_attempts=30):
                 host=host,
                 port=port,
                 user=username,
-                catalog='dtd-dw',
+                catalog='dtd_dw',
                 schema='default'
             )
             
@@ -90,7 +90,7 @@ def execute_ddl_file(ddl_file_path, host='trino-cluster-trino', port=8080):
         host=host,
         port=port,
         user=username,
-        catalog='dtd-dw',
+        catalog='dtd_dw',
         schema='default'
     )
     logger.info("DDL connection established")

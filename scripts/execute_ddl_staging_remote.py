@@ -28,7 +28,7 @@ def wait_for_remote_trino_staging(host, port, username, password, max_attempts=3
                 host=host,
                 port=port,
                 auth=BasicAuthentication(username, password),
-                catalog='dtd-dw-staging',
+                catalog='dtd_dw_staging',
                 schema='default',
                 http_scheme='https',
                 verify=True  # Disable SSL verification if needed
@@ -105,7 +105,7 @@ def execute_remote_staging_ddl_file(ddl_file_path, host=None, port=None, usernam
         host=host,
         port=port,
         auth=BasicAuthentication(username, password),
-        catalog='dtd-dw-staging',
+        catalog='dtd_dw_staging',
         schema='default',
         http_scheme='https',
         verify=True  # Disable SSL verification if needed

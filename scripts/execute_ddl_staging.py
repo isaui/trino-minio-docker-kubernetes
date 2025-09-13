@@ -28,7 +28,7 @@ def wait_for_trino_staging(host, port, max_attempts=30):
                 host=host,
                 port=port,
                 user=username,
-                catalog='dtd-dw-staging',
+                catalog='dtd_dw_staging',
                 schema='default'
             )
             
@@ -90,7 +90,7 @@ def execute_staging_ddl_file(ddl_file_path, host='trino-cluster-trino', port=808
         host=host,
         port=port,
         user=username,
-        catalog='dtd-dw-staging',
+        catalog='dtd_dw_staging',
         schema='default'
     )
     logger.info("Staging DDL connection established")

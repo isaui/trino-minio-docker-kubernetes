@@ -29,7 +29,7 @@ def wait_for_trino(host, port, username, password, max_attempts=30):
                 host=host,
                 port=port,
                 auth=BasicAuthentication(username, password),
-                catalog='dtd-dw',
+                catalog='dtd_dw',
                 schema='default',
                 http_scheme='https' if port == 443 else 'http',
                 verify=True  # Disable SSL verification if needed
@@ -91,7 +91,7 @@ def execute_ddl_file(ddl_file_path, host='trino72.pusilkom.com', port=443, usern
         host=host,
         port=port,
         auth=BasicAuthentication(username, password),
-        catalog='dtd-dw',
+        catalog='dtd_dw',
         schema='default',
         http_scheme='https' if port == 443 else 'http',
         verify=True  # Disable SSL verification if needed
