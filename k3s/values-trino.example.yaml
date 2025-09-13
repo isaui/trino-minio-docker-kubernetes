@@ -27,7 +27,7 @@ additionalCatalogs:
     # (tidak perlu s3.ssl.enabled; pakai http/https di s3.endpoint saja)
   dtd_dw_staging: |-
     connector.name=hive
-    hive.metastore.uri=thrift://hive-metastore-staging.dtd-datavisualization.svc.cluster.local:${ENV:METASTORE_PORT}
+    hive.metastore.uri=thrift://hive-metastore-staging.dtd-datavisualization.svc.cluster.local:${ENV:METASTORE_STAGING_PORT}
     fs.native-s3.enabled=true
     s3.endpoint=${ENV:MINIO_ENDPOINT}
     s3.path-style-access=true
