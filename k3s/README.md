@@ -54,10 +54,14 @@ Copy dan customize secrets configuration:
 cp secrets.example.yaml secrets.yaml
 
 # Edit secrets.yaml - update password placeholders dengan values sebenarnya:
-# - your-admin-password → actual Trino admin password  
+# - your-admin-password → actual Trino admin password (dipakai untuk Web UI login DAN DDL seed job)
 # - hivepassword → actual PostgreSQL password untuk user hive
 # - minioadmin/minioadmin123 → actual MinIO credentials (jika berbeda)
 ```
+
+**Important**: Pastikan `TRINO_PASSWORD` di secret `trino-auth` dan `password.db` di secret `trino-password-db` menggunakan **password yang sama**. Ini untuk:
+- `trino-auth`: DDL seed job authentication 
+- `trino-password-db`: Trino Web UI login authentication
 
 Copy dan customize ConfigMap:
 
