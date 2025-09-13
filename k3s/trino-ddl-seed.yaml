@@ -19,7 +19,7 @@ spec:
               valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_ENDPOINT } }
             - name: MINIO_WAREHOUSE_BUCKET
               valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_WAREHOUSE_BUCKET } }
-            - name: MINIO_STAGING_WAREHOUSE_BUCKET
+            - name: MINIO_STAGING_BUCKET
               valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_STAGING_BUCKET } }
             - name: MINIO_ACCESS_KEY
               valueFrom: { secretKeyRef: { name: minio-cred, key: accesskey } }
