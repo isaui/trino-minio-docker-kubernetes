@@ -38,12 +38,12 @@ hive.non-managed-table-writes-enabled=true
     catalog_dir = '/etc/trino/catalog'
     os.makedirs(catalog_dir, exist_ok=True)
     
-    hive_properties_path = os.path.join(catalog_dir, 'dtd-dw.properties')
+    hive_properties_path = os.path.join(catalog_dir, 'dtd_dw.properties')
     
     with open(hive_properties_path, 'w') as f:
         f.write(hive_properties_content)
     
-    print(f"✅ Generated dtd-dw.properties at {hive_properties_path}")
+    print(f"✅ Generated dtd_dw.properties at {hive_properties_path}")
     print("📝 S3 credentials are now hidden from host filesystem")
 
 if __name__ == "__main__":

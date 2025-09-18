@@ -36,6 +36,7 @@ cd /app
 echo "Generating Trino DDL from parquet files..."
 python3 generate_trino_views.py
 python3 generate_trino_staging_views.py
+python3 generate_trino_sandbox_views.py
 
 # Check if DDL was generated
 if [ -f "trino-ddl.sql" ]; then
@@ -87,6 +88,32 @@ if [ -f "trino-ddl-staging.sql" ]; then
     fi
 else
     echo "Failed to generate staging DDL file"
+fi
+
+# Check if sandbox DDL was generated
+if [ -f "trino-ddl-sandbox.sql" ]; then
+    echo "Sandbox DDL file generated successfully"
+    
+    # Copy to shared output directory
+    cp trino-ddl-sandbox.sql /output/trino-ddl-sandbox.sql
+    echo "Sandbox DDL file copied to /output/trino-ddl-sandbox.sql"
+    
+    # Show first few lines for debugging
+    echo "--- Sandbox DDL Preview ---"
+    head -20 /output/trino-ddl-sandbox.sql
+    echo "--- End Preview ---"
+    
+    # Execute DDL in Trino
+    echo "Executing sandbox DDL statements in Trino..."
+    python3 execute_ddl_sandbox.py --port 8080
+    
+    if [ $? -eq 0 ]; then
+        echo "Sandbox DDL execution completed successfully!"
+    else
+        echo "Sandbox DDL execution failed - check logs above"
+    fi
+else
+    echo "Failed to generate sandbox DDL file"
 fi
 
 echo "DDL generation and execution completed. Container will exit now."

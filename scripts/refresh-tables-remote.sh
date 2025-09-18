@@ -21,4 +21,12 @@ python generate_trino_staging_views.py
 echo "Step 4: Executing staging DDL on remote Trino..."
 python execute_ddl_staging_remote.py --file ./trino-ddl-staging.sql
 
+# Generate sandbox views (same as local since this generates SQL files)
+echo "Step 5: Generating Trino sandbox views..."
+python generate_trino_sandbox_views.py 
+
+# Execute sandbox DDL on remote Trino
+echo "Step 6: Executing sandbox DDL on remote Trino..."
+python execute_ddl_sandbox_remote.py --file ./trino-ddl-sandbox.sql
+
 echo "Remote Trino tables refresh completed!"

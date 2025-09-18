@@ -13,8 +13,10 @@ echo "Creating databases and granting permissions to user: $DB_USER"
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     CREATE DATABASE metastore;
     CREATE DATABASE metastore_staging;
+    CREATE DATABASE metastore_sandbox;
     GRANT ALL PRIVILEGES ON DATABASE metastore TO $DB_USER;
     GRANT ALL PRIVILEGES ON DATABASE metastore_staging TO $DB_USER;
+    GRANT ALL PRIVILEGES ON DATABASE metastore_sandbox TO $DB_USER;
 EOSQL
 
 echo "Databases created successfully!"

@@ -1,3 +1,18 @@
+# YAML anchors for common configurations
+x-common-environment: &common-env
+  MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+  MINIO_SSL_ENABLED: ${MINIO_SSL_ENABLED:-true}
+  POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  TRINO_HOST: ${TRINO_HOST:-trino-cluster-trino}
+  TRINO_PORT: ${TRINO_PORT:-8080}
+  TRINO_USERNAME: ${TRINO_USERNAME}
+  TRINO_PASSWORD: ${TRINO_PASSWORD}
+
 services:
   traefik:
     container_name: traefik
@@ -77,12 +92,28 @@ services:
   postgres:
     image: 'postgres:16'
     hostname: postgres
-    env_file:
-      - .env
+    environment:
+      <<: *common-env
     volumes:
       - ./scripts/init-postgres.sh:/docker-entrypoint-initdb.d/init-postgres.sh
     networks:
       - trino-network
+
+  hive-metastore-schema-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.hivemetastore-init
+    environment:
+      <<: *common-env
+      METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
+      METASTORE_DB_PORT: ${POSTGRES_PORT:-5432}
+    depends_on:
+      postgres:
+        condition: service_started
+    restart: "no"  # Run once and exit
+    networks:
+      - trino-network
+
   hive-metastore:
     build:
       context: .
@@ -96,7 +127,10 @@ services:
       METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
       ENVIRONMENT: production
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
+      hive-metastore-schema-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "9083"]
       interval: 30s
@@ -118,7 +152,35 @@ services:
       METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
       ENVIRONMENT: staging
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
+      hive-metastore-schema-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9083"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - trino-network
+
+  hive-metastore-sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile.hivemetastore
+    hostname: hive-metastore-sandbox
+    ports:
+      - '${METASTORE_SANDBOX_PORT:-9085}:9083' # Different port for sandbox
+    env_file:
+      - .env
+    environment:
+      METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
+      ENVIRONMENT: sandbox
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore-schema-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "9083"]
       interval: 30s
@@ -142,6 +204,8 @@ services:
       hive-metastore:
         condition: service_started
       hive-metastore-staging:
+        condition: service_started
+      hive-metastore-sandbox:
         condition: service_started
       trino-cluster-trino:
         condition: service_healthy

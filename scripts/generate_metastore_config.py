@@ -25,6 +25,9 @@ def generate_metastore_config():
     if environment == 'staging':
         postgres_db = 'metastore_staging'
         metastore_service = 'hive-metastore-staging'
+    elif environment == 'sandbox':
+        postgres_db = 'metastore_sandbox'
+        metastore_service = 'hive-metastore-sandbox'
     else:
         postgres_db = 'metastore'
         metastore_service = 'hive-metastore'
