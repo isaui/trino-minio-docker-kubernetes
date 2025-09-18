@@ -81,7 +81,7 @@ kubectl apply -f datalake-config.yaml
 
 ### Step 2: Deploy PostgreSQL Database
 
-Deploy PostgreSQL dengan 2 databases (metastore + metastore_staging):
+Deploy PostgreSQL dengan 3 databases (metastore + metastore_staging + metastore_sandbox):
 
 ```bash
 kubectl apply -f postgres-deploy.yaml

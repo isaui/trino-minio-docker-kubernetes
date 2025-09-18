@@ -48,13 +48,85 @@ additionalCatalogs:
     s3.aws-secret-key=${ENV:MINIO_SECRET_KEY}
     s3.region=us-east-1
 
-auth:
-  passwordAuthSecret: "trino-password-db"
+# auth.passwordAuthSecret tidak diperlukan karena pakai init container
 
 additionalPasswordAuthenticatorProperties:
   password-authenticator.properties: |-
     password-authenticator.name=file
     file.password-file=/etc/trino/auth/password/password.db
+
+# === RBAC Access Control Configuration ===
+accessControl:
+  type: "configmap"
+  configFile: "rules.json"
+  refreshPeriod: "30s"
+  rules:
+    rules.json: |-
+      {
+        "catalogs": [
+          {
+            "user": "admin",
+            "catalog": ".*",
+            "allow": "all"
+          },
+          {
+            "user": "isacitra",
+            "catalog": "system",
+            "allow": "read-only"
+          },
+          {
+            "user": "isacitra", 
+            "catalog": "dtd_dw_sandbox",
+            "allow": "read-only"
+          },
+          {
+            "user": "customer",
+            "catalog": "system", 
+            "allow": "read-only"
+          },
+          {
+            "user": "customer",
+            "catalog": "dtd_dw",
+            "allow": "read-only"
+          },
+          {
+            "catalog": ".*",
+            "allow": "none"
+          }
+        ],
+        "tables": [
+          {
+            "user": "admin",
+            "catalog": ".*",
+            "privileges": ["SELECT", "INSERT", "DELETE", "UPDATE", "OWNERSHIP", "GRANT_SELECT"]
+          },
+          {
+            "catalog": "system",
+            "privileges": ["SELECT"]
+          },
+          {
+            "user": "isacitra",
+            "catalog": "dtd_dw_sandbox",
+            "schema": ".*",
+            "table": ".*", 
+            "privileges": ["SELECT"]
+          },
+          {
+            "user": "customer",
+            "catalog": "dtd_dw",
+            "schema": ".*",
+            "table": ".*",
+            "privileges": ["SELECT"]
+          },
+          {
+            "user": ".*",
+            "catalog": ".*",
+            "schema": ".*", 
+            "table": ".*",
+            "privileges": []
+          }
+        ]
+      }
 
 additionalConfigProperties:
   - "http-server.process-forwarded=true"
@@ -65,9 +137,59 @@ server:
   config:
     authenticationType: "PASSWORD"
 
+# Init container untuk generate hashed passwords dari plain text secret
+initContainers:
+  coordinator:
+    - name: password-hasher
+      image: httpd:alpine  # Contains htpasswd
+      command: ["/bin/sh"]
+      args:
+        - -c
+        - |
+          echo " Reading plain passwords and generating hashes..."
+          
+          # Read dari mounted secret file dan generate hash
+          while IFS=: read -r username password; do
+            # Skip empty lines dan trim whitespace
+            username=$(echo "$username" | tr -d '\r\n')
+            password=$(echo "$password" | tr -d '\r\n')
+            
+            if [ ! -z "$username" ] && [ ! -z "$password" ]; then
+              echo "Processing user: $username"
+              if [ ! -f /shared/password.db ]; then
+                htpasswd -B -C 10 -b -c /shared/password.db "$username" "$password"
+              else
+                htpasswd -B -C 10 -b /shared/password.db "$username" "$password"
+              fi
+            fi
+          done < /source/password.db
+          
+          echo " Generated hashed password file with $(wc -l < /shared/password.db) users:"
+          cat /shared/password.db | cut -d: -f1
+      volumeMounts:
+        - name: source-passwords
+          mountPath: /source
+          readOnly: true
+        - name: hashed-passwords  
+          mountPath: /shared
+
 coordinator:
   config:
     web-ui.authentication.type: "FORM"
+  
+  # Volume untuk mount secret dan output
+  additionalVolumes:
+    - name: source-passwords
+      secret:
+        secretName: trino-password-db
+    - name: hashed-passwords
+      emptyDir: {}
+      
+  # Mount hashed password file ke main container  
+  additionalVolumeMounts:
+    - name: hashed-passwords
+      mountPath: /etc/trino/auth/password
+      readOnly: true
 
 worker:
   additionalConfigProperties:
