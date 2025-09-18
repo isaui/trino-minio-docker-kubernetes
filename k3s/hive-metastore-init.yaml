@@ -9,50 +9,14 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: schematool
-          image: localhost:5000/hive-metastore:latest
+          image: localhost:5000/hive-metastore-init:latest
           env:
             - name: METASTORE_DB_HOSTNAME
               valueFrom: { configMapKeyRef: { name: data-lake-config, key: POSTGRES_HOST } }
             - name: METASTORE_DB_PORT
               valueFrom: { configMapKeyRef: { name: data-lake-config, key: POSTGRES_PORT } }
-            - name: METASTORE_DB_USER
+            - name: POSTGRES_USER
               valueFrom: { secretKeyRef: { name: metastore-db, key: username } }
-            - name: METASTORE_DB_PASSWORD
+            - name: POSTGRES_PASSWORD
               valueFrom: { secretKeyRef: { name: metastore-db, key: password } }
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              echo "Initializing Hive Metastore schemas for production and staging..."
-              
-              # Initialize production metastore database
-              echo "Creating schema in 'metastore' database..."
-              /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres \
-                -driver org.postgresql.Driver \
-                -userName "$METASTORE_DB_USER" \
-                -passWord "$METASTORE_DB_PASSWORD" \
-                -url "jdbc:postgresql://$METASTORE_DB_HOSTNAME:$METASTORE_DB_PORT/metastore" \
-                -validate || \
-              /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres \
-                -driver org.postgresql.Driver \
-                -userName "$METASTORE_DB_USER" \
-                -passWord "$METASTORE_DB_PASSWORD" \
-                -url "jdbc:postgresql://$METASTORE_DB_HOSTNAME:$METASTORE_DB_PORT/metastore" \
-                -initSchema --verbose || true
-              
-              # Initialize staging metastore database  
-              echo "Creating schema in 'metastore_staging' database..."
-              /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres \
-                -driver org.postgresql.Driver \
-                -userName "$METASTORE_DB_USER" \
-                -passWord "$METASTORE_DB_PASSWORD" \
-                -url "jdbc:postgresql://$METASTORE_DB_HOSTNAME:$METASTORE_DB_PORT/metastore_staging" \
-                -validate || \
-              /opt/apache-hive-metastore-3.0.0-bin/bin/schematool -dbType postgres \
-                -driver org.postgresql.Driver \
-                -userName "$METASTORE_DB_USER" \
-                -passWord "$METASTORE_DB_PASSWORD" \
-                -url "jdbc:postgresql://$METASTORE_DB_HOSTNAME:$METASTORE_DB_PORT/metastore_staging" \
-                -initSchema --verbose || true
-              
-              echo "Schema initialization completed for both databases"
       # imagePullSecrets not needed for localhost:5000

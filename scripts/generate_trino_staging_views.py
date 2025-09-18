@@ -311,9 +311,7 @@ def generate_trino_staging_ddl(output_file=None):
     """
     logger = logging.getLogger(__name__)
     
-    # Load environment variables from .env file in docker-compose directory
-    env_file = os.path.join(os.path.dirname(__file__), '..', '.env')
-    load_dotenv(env_file)
+    load_dotenv()
     
     # Get MinIO staging config from environment
     bucket_name = os.getenv('MINIO_STAGING_BUCKET')

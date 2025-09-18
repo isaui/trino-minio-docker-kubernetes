@@ -311,9 +311,7 @@ def generate_trino_ddl(output_file=None):
     """
     logger = logging.getLogger(__name__)
     
-    # Load environment variables from .env file in docker-compose directory
-    env_file = os.path.join(os.path.dirname(__file__), '..', '.env')
-    load_dotenv(env_file)
+    load_dotenv()
     
     # Get MinIO config from environment
     bucket_name = os.getenv('MINIO_WAREHOUSE_BUCKET')

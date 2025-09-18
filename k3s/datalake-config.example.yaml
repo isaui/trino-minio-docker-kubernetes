@@ -8,6 +8,7 @@ data:
   MINIO_ENDPOINT: "http://minio.example.com:9000"
   MINIO_WAREHOUSE_BUCKET: "warehouse"
   MINIO_STAGING_BUCKET: "staging-warehouse"
+  MINIO_SANDBOX_BUCKET: "sandbox-warehouse"
   MINIO_SSL_ENABLED: "false"
   
   # PostgreSQL database configuration  
@@ -15,3 +16,4 @@ data:
   POSTGRES_PORT: "5432" 
   METASTORE_PORT: "9083"
   METASTORE_STAGING_PORT: "9084"
+  METASTORE_SANDBOX_PORT: "9085"

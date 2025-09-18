@@ -18,6 +18,7 @@ REGISTRY="localhost:5000"
 # Image names dan tags
 SEED_IMAGE="${REGISTRY}/trino-ddl-seed"
 HIVE_METASTORE_IMAGE="${REGISTRY}/hive-metastore"
+HIVE_METASTORE_INIT_IMAGE="${REGISTRY}/hive-metastore-init"
 TAG="latest"
 
 echo -e "${BLUE}=== Building and Pushing Trino Images ===${NC}"
@@ -65,11 +66,16 @@ build_and_push "../Dockerfile.seed" "$SEED_IMAGE" ".."
 echo -e "${BLUE}=== Building Hive Metastore Image ===${NC}"
 build_and_push "../Dockerfile.hivemetastore" "$HIVE_METASTORE_IMAGE" ".."
 
+# Build dan push Hive Metastore Init image
+echo -e "${BLUE}=== Building Hive Metastore Init Image ===${NC}"
+build_and_push "../Dockerfile.hivemetastore-init" "$HIVE_METASTORE_INIT_IMAGE" ".."
+
 # Summary
 echo -e "${GREEN}=== BUILD AND PUSH COMPLETED ===${NC}"
 echo -e "${GREEN}Images pushed to local registry:${NC}"
 echo -e "  • ${SEED_IMAGE}:${TAG}"
 echo -e "  • ${HIVE_METASTORE_IMAGE}:${TAG}"
+echo -e "  • ${HIVE_METASTORE_INIT_IMAGE}:${TAG}"
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo -e "  1. Update values-trino.yaml dengan image names yang sesuai"
