@@ -230,11 +230,9 @@ def generate_ddl(output_file='trino-ddl-sandbox.sql'):
             ddl_statements.append(");")
             ddl_statements.append("")
     
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
-    
-    with open(output_file, 'w') as f:
-        for statement in ddl_statements:
-            f.write(statement + '\n')
+    output_dir = os.path.dirname(output_file)
+    if output_dir:  # Only create directory if there's a directory component
+        os.makedirs(output_dir, exist_ok=True)
     
     logger.info(f"✅ Generated sandbox DDL with {len(schemas_created)} schemas")
     logger.info(f"📄 Output file: {output_file}")
