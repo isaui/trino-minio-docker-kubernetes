@@ -32,6 +32,7 @@ def generate_metastore_config():
         postgres_db = 'metastore'
         metastore_service = 'hive-metastore'
     
+    
     # Validate required variables
     if not minio_endpoint:
         print("ERROR: MINIO_ENDPOINT environment variable is required")
@@ -122,6 +123,19 @@ def generate_metastore_config():
     <property>
         <name>hive.metastore.warehouse.dir</name>
         <value>s3a://{minio_warehouse_bucket}/user/hive/warehouse</value>
+    </property>
+
+    <!-- Connection Pooling Configuration - Reduces idle connections to PostgreSQL -->
+    <!-- Based on DataNucleus documentation: https://www.datanucleus.org/products/accessplatform_4_2/jdo/datastore_connection.html -->
+    <property>
+        <name>datanucleus.connectionPool.maxPoolSize</name>
+        <value>3</value>
+        <description>Maximum number of connections in pool (internal and application pool) (x2 = 6) </description>
+    </property>
+    <property>
+        <name>datanucleus.connectionPool.maxIdle</name>
+        <value>2</value>
+        <description>Maximum number of idle connections in pool</description>
     </property>
 
 </configuration>

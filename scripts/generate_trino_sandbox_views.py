@@ -230,8 +230,10 @@ def generate_ddl(output_file='trino-ddl-sandbox.sql'):
             ddl_statements.append(");")
             ddl_statements.append("")
     
-    # Write DDL to file
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # Write DDL to file - FIX: Only create directory if path has one
+    output_dir = os.path.dirname(output_file)
+    if output_dir:  # Only create directory if there's a directory component
+        os.makedirs(output_dir, exist_ok=True)
     
     with open(output_file, 'w') as f:
         for statement in ddl_statements:
