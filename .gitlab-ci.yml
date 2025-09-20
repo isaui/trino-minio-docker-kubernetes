@@ -1,0 +1,47 @@
+---
+stages:
+  - build
+  - deploy
+
+variables:
+  KUBECTL_URL: "https://storage.googleapis.com/kubernetes-release/release/v1.12.1/bin/linux/amd64/kubectl"
+  IMAGE_NAME: "$REGISTRY_URL/dtd/trino-ddl-seed"
+
+build_image:
+  stage: build
+  image: docker:20.10.16
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "feat/fix-multiple-bucket"'
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+  services:
+    - name: docker:20.10.16-dind
+  before_script:
+    - mkdir ~/.docker/
+    - echo $REGISTRY_PASSWORD | docker login $REGISTRY_URL -u $REGISTRY_USERNAME --password-stdin 
+  script:
+    - docker build -f Dockerfile.seed -t $IMAGE_NAME:${CI_COMMIT_SHORT_SHA} .
+    - docker push $IMAGE_NAME:${CI_COMMIT_SHORT_SHA}
+
+
+deploy:kubernetes:
+  stage: deploy
+  image:
+    name: khpahmil/kubectl:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "feat/fix-multiple-bucket"'
+  before_script:
+    - echo "Start deploying ..."
+  script:
+    - mkdir -p $HOME/.kube
+    - echo -n $kube_config_dtd | base64 -d > $HOME/.kube/config
+    - ls -lah $HOME/.kube/
+    - cat $HOME/.kube/config
+    - kubectl --kubeconfig $HOME/.kube/config get pod
+    - sed -i "s/IMAGE_TAG/$CI_COMMIT_SHORT_SHA/g" k8s/trino-ddl-seed.yaml
+    - sed -i "s|IMAGE_NAME|$IMAGE_NAME|g" k8s/trino-ddl-seed.yaml
+    - kubectl --kubeconfig $HOME/.kube/config delete job -n dtd-datavisualization trino-ddl-seed --ignore-not-found
+    - kubectl --kubeconfig $HOME/.kube/config apply -f k8s/trino-ddl-seed.yaml
+
+
+

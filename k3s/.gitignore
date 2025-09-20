@@ -1,0 +1,30 @@
+# Kubernetes Config Files - Exclude actual configs, keep examples
+# ConfigMaps
+datalake-config.yaml
+data-lake-config.yaml
+
+# Secrets  
+secrets.yaml
+minio-cred.yaml
+metastore-db.yaml
+registry-dtd.yaml
+
+# Keep example files
+!*.example.yaml
+!*-example.yaml
+
+# Environment specific configs
+*-prod.yaml
+*-staging.yaml
+*-dev.yaml
+
+# Helm values
+values.yaml
+values-*.yaml
+!values.example.yaml
+!values-*.example.yaml
+
+# Temporary files
+*.tmp
+*.bak
+*~

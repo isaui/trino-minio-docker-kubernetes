@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hive-metastore-init
+  namespace: dtd-datavisualization
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: schematool
+          image: localhost:5000/hive-metastore-init:latest
+          env:
+            - name: METASTORE_DB_HOSTNAME
+              valueFrom: { configMapKeyRef: { name: data-lake-config, key: POSTGRES_HOST } }
+            - name: METASTORE_DB_PORT
+              valueFrom: { configMapKeyRef: { name: data-lake-config, key: POSTGRES_PORT } }
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: metastore-db, key: username } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: metastore-db, key: password } }
+      # imagePullSecrets not needed for localhost:5000

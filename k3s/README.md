@@ -1,0 +1,271 @@
+# Trino + Hive Metastore Deployment di Kubernetes
+
+Panduan step-by-step untuk deploy Trino cluster dengan dual Hive Metastore (production + staging) di K3s/Kubernetes.
+
+## 📋 Architecture Overview
+
+Berdasarkan `docker-compose.yml`, arsitektur terdiri dari:
+- **Trino**: Main query engine dengan dual catalog (dtd_dw + dtd_dw_staging)  
+- **Hive Metastore**: Production metastore (port 9083)
+- **Hive Metastore Staging**: Staging metastore (port 9084)
+- **PostgreSQL**: Backend database untuk metastores
+- **DDL Seed Job**: Schema initialization job
+- **MinIO**: S3-compatible object storage (external)
+
+## 🛠️ Prerequisites
+
+### 1. Setup Local Registry
+```bash
+# Start local Docker registry untuk custom images
+docker run -d -p 5000:5000 --name registry registry:2
+```
+
+### 2. Build dan Push Custom Images
+```bash
+cd k3s/
+chmod +x build-and-push-images.sh
+./build-and-push-images.sh
+```
+
+Ini akan build dan push:
+- `localhost:5000/trino-ddl-seed:latest` (dari `Dockerfile.seed`)
+- `localhost:5000/hive-metastore:latest` (dari `Dockerfile.hivemetastore`)
+
+### 3. Setup Helm Repository
+```bash
+helm repo add trino https://trinodb.github.io/charts
+helm repo update
+```
+
+### 4. Create Namespace
+```bash
+kubectl create namespace dtd-datavisualization
+kubectl config set-context --current --namespace=dtd-datavisualization
+```
+
+## 🚀 Deployment Steps
+
+### Step 1: Create Secrets dan ConfigMaps
+
+Copy dan customize secrets configuration:
+
+```bash
+# Copy example files
+cp secrets.example.yaml secrets.yaml
+
+# Edit secrets.yaml - update password placeholders dengan values sebenarnya:
+# - your-admin-password → actual Trino admin password (dipakai untuk Web UI login DAN DDL seed job)
+# - hivepassword → actual PostgreSQL password untuk user hive
+# - minioadmin/minioadmin123 → actual MinIO credentials (jika berbeda)
+```
+
+**Important**: Pastikan `TRINO_PASSWORD` di secret `trino-auth` dan `password.db` di secret `trino-password-db` menggunakan **password yang sama**. Ini untuk:
+- `trino-auth`: DDL seed job authentication 
+- `trino-password-db`: Trino Web UI login authentication
+
+Copy dan customize ConfigMap:
+
+```bash
+# Copy ConfigMap example
+cp datalake-config.example.yaml datalake-config.yaml
+
+# Edit datalake-config.yaml - update MinIO endpoint dan PostgreSQL host sesuai environment
+```
+
+Apply secrets dan configmap:
+
+```bash
+kubectl apply -f secrets.yaml
+kubectl apply -f datalake-config.yaml
+```
+
+### Step 2: Deploy PostgreSQL Database
+
+Deploy PostgreSQL dengan 3 databases (metastore + metastore_staging + metastore_sandbox):
+
+```bash
+kubectl apply -f postgres-deploy.yaml
+
+# Wait untuk PostgreSQL ready
+```
+
+### Step 3: Initialize Hive Metastore Schema (Optional)
+
+Jika PostgreSQL belum ada schema metastore:
+
+```bash
+kubectl apply -f hive-metastore-init.yaml
+
+```
+
+### Step 4: Deploy Hive Metastores
+
+Deploy both production dan staging metastores:
+
+```bash
+kubectl apply -f hive-metastore-deploy.yaml
+
+
+```
+
+### Step 5: Configure Trino Values
+
+Copy dan edit values file:
+
+```bash
+cp values-trino.example.yaml values-trino.yaml
+# Edit values-trino.yaml sesuai environment Anda
+```
+
+Key configurations di `values-trino.yaml`:
+- **Catalogs**: `dtd_dw` (production) dan `dtd_dw_staging`
+- **Environment variables**: MinIO credentials, metastore endpoints
+- **Authentication**: Password-based auth
+
+### Step 6: Deploy Trino Cluster
+
+```bash
+# Install Trino dengan Helm (HARUS specify namespace!)
+helm install trino-cluster trino/trino -f values-trino.yaml -n dtd-datavisualization
+
+
+```
+
+### Step 7: Seed DDL Schemas
+
+Jalankan job untuk create schemas dan tables:
+
+```bash
+kubectl apply -f trino-ddl-seed.yaml
+
+# Monitor job progress
+kubectl logs -f job/trino-ddl-seed
+```
+
+### Step 8: Enable Trino Worker Autoscaling (Optional)
+
+Deploy HPA untuk auto-scale Trino workers berdasarkan CPU usage:
+
+```bash
+kubectl apply -f trino-hpa.yaml
+
+# Check HPA status
+kubectl get hpa trino-cluster-worker
+```
+
+**HPA Configuration:**
+- **Min replicas**: 3 workers
+- **Max replicas**: 6 workers  
+- **Target**: 70% CPU utilization
+- **Target deployment**: `trino-cluster-trino-worker`
+
+### Step 9: Verification
+
+```bash
+# Check all pods running
+kubectl get pods
+
+# Port forward ke Trino UI
+kubectl port-forward svc/trino-cluster-trino 8080:8080 -n dtd-datavisualization
+
+# Access Trino Web UI
+# http://localhost:8080 (admin/your-admin-password)
+
+# Test query via CLI
+kubectl exec -it deployment/trino-cluster-trino-coordinator -n dtd-datavisualization -- trino --server localhost:8080 --user admin
+
+# Sample queries:
+# SHOW CATALOGS;
+# SHOW SCHEMAS FROM dtd_dw;
+# SHOW SCHEMAS FROM dtd_dw_staging;
+```
+
+## 🔄 Management Commands
+
+### Restart Deployments
+```bash
+# Restart Trino cluster
+kubectl rollout restart deployment/trino-cluster-trino-coordinator -n dtd-datavisualization
+kubectl rollout restart deployment/trino-cluster-trino-worker -n dtd-datavisualization
+
+# Restart metastores
+kubectl rollout restart deployment/hive-metastore -n dtd-datavisualization
+kubectl rollout restart deployment/hive-metastore-staging -n dtd-datavisualization
+
+# Check rollout status
+kubectl rollout status deployment/trino-cluster-trino-coordinator -n dtd-datavisualization
+kubectl rollout status deployment/hive-metastore -n dtd-datavisualization
+kubectl rollout status deployment/hive-metastore-staging -n dtd-datavisualization
+```
+
+### Upgrade Trino
+```bash
+# Update Helm chart
+helm repo update
+helm upgrade trino-cluster trino/trino -f values-trino.yaml -n dtd-datavisualization
+```
+
+### Logs dan Debugging
+```bash
+# Trino coordinator logs
+kubectl logs -f deployment/trino-cluster-trino-coordinator -n dtd-datavisualization
+
+# Metastore logs
+kubectl logs -f deployment/hive-metastore -n dtd-datavisualization
+kubectl logs -f deployment/hive-metastore-staging -n dtd-datavisualization
+
+# DDL seed job logs
+kubectl logs job/trino-ddl-seed -n dtd-datavisualization
+```
+
+## 📊 Service Endpoints
+
+- **Trino Coordinator**: `trino-cluster-trino:8080`
+- **Production Metastore**: `hive-metastore:9083`  
+- **Staging Metastore**: `hive-metastore-staging:9084`
+- **PostgreSQL**: `postgres:5432`
+
+## 🗂️ Catalog Configuration
+
+Trino memiliki akses ke dual catalogs:
+- **`dtd_dw`**: Production catalog → `hive-metastore:9083`
+- **`dtd_dw_staging`**: Staging catalog → `hive-metastore-staging:9084`
+
+Kedua catalog connect ke MinIO S3 storage yang sama tapi bisa pakai prefix/bucket berbeda untuk isolation.
+
+## ⚠️ Troubleshooting
+
+### Common Issues:
+
+1. **Metastore Connection Error**:
+   ```bash
+   # Check metastore pod logs
+   kubectl logs deployment/hive-metastore
+   # Verify PostgreSQL connectivity
+   kubectl exec -it deployment/hive-metastore -- nc -zv postgres 5432
+   ```
+
+2. **Trino Catalog Error**:
+   ```bash
+   # Check Trino coordinator logs
+   kubectl logs deployment/trino-cluster-trino-coordinator
+   # Verify metastore connectivity  
+   kubectl exec -it deployment/trino-cluster-trino-coordinator -- nc -zv hive-metastore 9083
+   ```
+
+3. **DDL Seed Job Failed**:
+   ```bash
+   # Check job logs
+   kubectl logs job/trino-ddl-seed
+   # Delete dan retry job
+   kubectl delete job/trino-ddl-seed
+   kubectl apply -f trino-ddl-seed.yaml
+   ```
+
+4. **Image Pull Errors**:
+   ```bash
+   # Verify local registry
+   curl http://localhost:5000/v2/_catalog
+   # Re-run build script
+   ./build-and-push-images.sh
+   ```

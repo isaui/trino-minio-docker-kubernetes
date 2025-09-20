@@ -1,0 +1,65 @@
+{
+  "catalogs": [
+    {
+      "user": "admin",
+      "catalog": ".*",
+      "allow": "all"
+    },
+    {
+      "user": "isacitra",
+      "catalog": "system",
+      "allow": "read-only"
+    },
+    {
+      "user": "isacitra", 
+      "catalog": "dtd_dw_sandbox",
+      "allow": "read-only"
+    },
+    {
+      "user": "customer",
+      "catalog": "system", 
+      "allow": "read-only"
+    },
+    {
+      "user": "customer",
+      "catalog": "dtd_dw",
+      "allow": "read-only"
+    },
+    {
+      "catalog": ".*",
+      "allow": "none"
+    }
+  ],
+  "tables": [
+    {
+      "user": "admin",
+      "catalog": ".*",
+      "privileges": ["SELECT", "INSERT", "DELETE", "UPDATE", "OWNERSHIP", "GRANT_SELECT"]
+    },
+    {
+      "catalog": "system",
+      "privileges": ["SELECT"]
+    },
+    {
+      "user": "isacitra",
+      "catalog": "dtd_dw_sandbox",
+      "schema": ".*",
+      "table": ".*", 
+      "privileges": ["SELECT"]
+    },
+    {
+      "user": "customer",
+      "catalog": "dtd_dw",
+      "schema": ".*",
+      "table": ".*",
+      "privileges": ["SELECT"]
+    },
+    {
+      "user": ".*",
+      "catalog": ".*",
+      "schema": ".*", 
+      "table": ".*",
+      "privileges": []
+    }
+  ]
+}

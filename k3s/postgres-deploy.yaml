@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: dtd-datavisualization
+spec:
+  selector: { app: postgres }
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: dtd-datavisualization
+data:
+  init-postgres.sh: |
+    #!/bin/bash
+    # PostgreSQL initialization script
+    # Creates separate databases for production and staging metastores
+    
+    set -e
+    
+    # Use POSTGRES_USER from environment, default to 'postgres' if not set
+    DB_USER=${POSTGRES_USER:-postgres}
+    
+    echo "Creating databases and granting permissions to user: $DB_USER"
+    
+    # Create production metastore database and staging metastore database
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE DATABASE metastore;
+        CREATE DATABASE metastore_staging;
+        CREATE DATABASE metastore_sandbox;  
+        GRANT ALL PRIVILEGES ON DATABASE metastore TO $DB_USER;
+        GRANT ALL PRIVILEGES ON DATABASE metastore_staging TO $DB_USER;
+        GRANT ALL PRIVILEGES ON DATABASE metastore_sandbox TO $DB_USER;
+    EOSQL
+    
+    echo "Databases created successfully!"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: dtd-datavisualization
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata:
+      labels: { app: postgres }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports: [{ containerPort: 5432, name: postgres }]
+          env:
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: metastore-db, key: username } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: metastore-db, key: password } }
+            - name: POSTGRES_DB
+              value: "postgres"  # Default database untuk initial connection
+          volumeMounts:
+            - name: postgres-init-script
+              mountPath: /docker-entrypoint-initdb.d
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe: 
+            exec:
+              command: ["/bin/sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests: { cpu: "200m", memory: "512Mi" }
+            limits:   { cpu: "1",    memory: "2Gi" }
+      volumes:
+        - name: postgres-init-script
+          configMap:
+            name: postgres-init
+            defaultMode: 0755
+        - name: postgres-data
+          emptyDir: {}  # For development - use PVC for production

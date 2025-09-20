@@ -1,0 +1,216 @@
+# YAML anchors for common configurations
+x-common-environment: &common-env
+  MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+  MINIO_SSL_ENABLED: ${MINIO_SSL_ENABLED:-true}
+  POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  TRINO_HOST: ${TRINO_HOST:-trino-cluster-trino}
+  TRINO_PORT: ${TRINO_PORT:-8080}
+  TRINO_USERNAME: ${TRINO_USERNAME}
+  TRINO_PASSWORD: ${TRINO_PASSWORD}
+
+services:
+  traefik:
+    container_name: traefik
+    image: traefik:v3.3
+    command:
+      - --api.insecure=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --accesslog=true
+      - --entryPoints.websecure.address=:443     
+    ports:
+      - "443:443"
+      - "8081:8080"  # Traefik dashboard
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore:
+        condition: service_started
+      trino-cluster-trino:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker-vol/letsencrypt:/letsencrypt
+    networks:
+      - trino-network
+      
+  trino-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.init
+    env_file:
+      - .env
+    volumes:
+      - ./docker-vol/trino-config:/etc/trino/dynamic
+      - ./docker-vol/catalog:/etc/trino/catalog
+    networks:
+      - trino-network
+
+  trino-cluster-trino:
+    image: 'trinodb/trino:latest'
+    hostname: trino-cluster-trino
+    ports:
+      - '127.0.0.1:8080:8080'
+    env_file:
+      - .env
+    volumes:
+      - ./etc:/etc/trino
+      - ./docker-vol/output:/opt/ddl
+      - ./docker-vol/trino-config:/etc/trino/dynamic
+      - ./docker-vol/catalog:/etc/trino/catalog
+      - ./docker-vol/trino-spill1:/data/trino-spill1
+    depends_on:
+      trino-init:
+        condition: service_completed_successfully
+      hive-metastore:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/v1/info || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      # HTTPS router with Let's Encrypt
+      - "traefik.http.routers.trino.rule=Host(`${TRINO_DOMAIN}`)"
+      - "traefik.http.routers.trino.entrypoints=websecure"
+      - "traefik.http.routers.trino.tls=true"
+      - "traefik.http.routers.trino.middlewares=trino-headers"
+      # Complete middleware headers for Trino authentication
+      - "traefik.http.middlewares.trino-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.trino-headers.headers.customrequestheaders.X-Forwarded-Host=${TRINO_DOMAIN}"
+      - "traefik.http.services.trino.loadbalancer.server.port=8080"
+    networks:
+      - trino-network
+
+  postgres:
+    image: 'postgres:16'
+    hostname: postgres
+    environment:
+      <<: *common-env
+    volumes:
+      - ./scripts/init-postgres.sh:/docker-entrypoint-initdb.d/init-postgres.sh
+    networks:
+      - trino-network
+
+  hive-metastore-schema-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.hivemetastore-init
+    environment:
+      <<: *common-env
+      METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
+      METASTORE_DB_PORT: ${POSTGRES_PORT:-5432}
+    depends_on:
+      postgres:
+        condition: service_started
+    restart: "no"  # Run once and exit
+    networks:
+      - trino-network
+
+  hive-metastore:
+    build:
+      context: .
+      dockerfile: Dockerfile.hivemetastore
+    hostname: hive-metastore
+    ports:
+      - '${METASTORE_PORT:-9083}:9083' # Thrift untuk Trino connection
+    env_file:
+      - .env
+    environment:
+      METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
+      ENVIRONMENT: production
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore-schema-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9083"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - trino-network
+
+  hive-metastore-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile.hivemetastore
+    hostname: hive-metastore-staging
+    ports:
+      - '${METASTORE_STAGING_PORT:-9084}:9083' # Different port for staging
+    env_file:
+      - .env
+    environment:
+      METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
+      ENVIRONMENT: staging
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore-schema-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9083"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - trino-network
+
+  hive-metastore-sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile.hivemetastore
+    hostname: hive-metastore-sandbox
+    ports:
+      - '${METASTORE_SANDBOX_PORT:-9085}:9083' # Different port for sandbox
+    env_file:
+      - .env
+    environment:
+      METASTORE_DB_HOSTNAME: ${POSTGRES_HOST:-postgres}
+      ENVIRONMENT: sandbox
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore-schema-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9083"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - trino-network
+
+  ddl-seed:
+    build:
+      context: .
+      dockerfile: Dockerfile.seed
+    volumes:
+      - ./docker-vol/output:/output
+      - ./docker-vol/trino-config:/etc/trino/dynamic
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_started
+      hive-metastore:
+        condition: service_started
+      hive-metastore-staging:
+        condition: service_started
+      hive-metastore-sandbox:
+        condition: service_started
+      trino-cluster-trino:
+        condition: service_healthy
+    networks:
+      - trino-network
+networks:
+  trino-network:
+    driver: bridge

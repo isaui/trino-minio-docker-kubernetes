@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trino-ddl-seed
+  namespace: dtd-datavisualization
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          image: localhost:5000/trino-ddl-seed:latest
+          envFrom:
+            - secretRef: { name: trino-auth }
+          env:
+            # MinIO env dibutuhkan py scripts
+            - name: MINIO_ENDPOINT
+              valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_ENDPOINT } }
+            - name: MINIO_WAREHOUSE_BUCKET
+              valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_WAREHOUSE_BUCKET } }
+            - name: MINIO_STAGING_BUCKET
+              valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_STAGING_BUCKET } }
+            - name: MINIO_SANDBOX_BUCKET
+              valueFrom: { configMapKeyRef: { name: data-lake-config, key: MINIO_SANDBOX_BUCKET } }
+            - name: MINIO_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: minio-cred, key: accesskey } }
+            - name: MINIO_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: minio-cred, key: secretkey } }
+          command: ["/bin/sh","-lc"]
+          args:
+            - |
+              echo "Waiting Trino ready..."
+              #until curl -fsS http://$TRINO_HOST:$TRINO_PORT/v1/info >/dev/null; do sleep 5; done
+              echo "Seeding..."
+              /app/seed-entrypoint.sh
+      # imagePullSecrets not needed for localhost:5000

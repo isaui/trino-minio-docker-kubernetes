@@ -1,0 +1,53 @@
+FROM openjdk:8-jre-slim-bullseye
+
+WORKDIR /opt
+
+# Environment variables - these rarely change
+ENV HADOOP_VERSION=${HADOOP_VERSION:-3.4.1}
+ENV METASTORE_VERSION=${METASTORE_VERSION:-3.0.0}
+ENV HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
+ENV HIVE_HOME=/opt/apache-hive-metastore-${METASTORE_VERSION}-bin
+
+# Install system packages - cache this layer
+RUN apt-get update && apt-get install -y netcat curl dos2unix
+
+# Copy and extract all dependencies in single layer - more efficient and removes installer after use
+COPY installer/ /tmp/installer/
+
+# Validate all required files exist with helpful error messages
+RUN echo "Validating cached dependencies..." && \
+    if [ ! -f "/tmp/installer/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz" ]; then \
+        echo "ERROR: hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz not found!"; \
+        echo "Please run: ./scripts/download-executables.sh"; \
+        exit 1; \
+    fi && \
+    if [ ! -f "/tmp/installer/hadoop-${HADOOP_VERSION}.tar.gz" ]; then \
+        echo "ERROR: hadoop-${HADOOP_VERSION}.tar.gz not found!"; \
+        echo "Please run: ./scripts/download-executables.sh"; \
+        exit 1; \
+    fi && \
+    if [ ! -f "/tmp/installer/postgresql-42.4.0.jar" ]; then \
+        echo "ERROR: postgresql-42.4.0.jar not found!"; \
+        echo "Please run: ./scripts/download-executables.sh"; \
+        exit 1; \
+    fi && \
+    echo "All required dependencies found in installer/ directory"
+
+RUN tar zxf /tmp/installer/hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz && \
+    tar zxf /tmp/installer/hadoop-${HADOOP_VERSION}.tar.gz && \
+    cp /tmp/installer/postgresql-42.4.0.jar ${HIVE_HOME}/lib/ && \
+    rm -rf /tmp/installer/ && \
+    rm -f hive-standalone-metastore-${METASTORE_VERSION}-bin.tar.gz && \
+    rm -f hadoop-${HADOOP_VERSION}.tar.gz
+
+# Copy initialization script
+COPY scripts/hive-metastore-schema-init.sh /hive-metastore-schema-init.sh
+
+# Convert line endings and make executable (multiplatform support)
+RUN dos2unix /hive-metastore-schema-init.sh && chmod +x /hive-metastore-schema-init.sh
+
+# Set environment variables for Hadoop and Hive
+ENV HADOOP_CLASSPATH=${HADOOP_HOME}/share/hadoop/tools/lib/*
+ENV JAVA_HOME=/usr/local/openjdk-8
+
+ENTRYPOINT ["/hive-metastore-schema-init.sh"]
